@@ -85,9 +85,9 @@ func (a *Assessor) Register(gvk schema.GroupVersionKind, check Check) error {
 	return nil
 }
 
-// Assess honors standard kstatus signals exposed by the resource for the
-// reconciliation status. A resource-specific check supplies availability and
-// supplies reconciliation when standard signals do not decide it.
+// Assess honors generic lifecycle and reconciliation signals exposed by the
+// resource. A resource-specific check supplies availability and supplies
+// reconciliation when generic signals do not decide it.
 func (a *Assessor) Assess(obj *unstructured.Unstructured) (Assessment, error) {
 	if obj == nil {
 		return Assessment{}, fmt.Errorf("resource must not be nil")

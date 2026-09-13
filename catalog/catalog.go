@@ -5,6 +5,9 @@ import (
 	"github.com/kubehealth-project/kubehealth"
 	"github.com/kubehealth-project/kubehealth/integrations/argorollouts"
 	"github.com/kubehealth-project/kubehealth/integrations/certmanager"
+	"github.com/kubehealth-project/kubehealth/integrations/crossplane"
+	"github.com/kubehealth-project/kubehealth/integrations/externalsecrets"
+	"github.com/kubehealth-project/kubehealth/integrations/gatewayapi"
 	"github.com/kubehealth-project/kubehealth/integrations/keda"
 	"github.com/kubehealth-project/kubehealth/integrations/kyverno"
 )
@@ -15,6 +18,9 @@ func NewAssessor() (*kubehealth.Assessor, error) {
 	for _, register := range []func(*kubehealth.Assessor) error{
 		argorollouts.Register,
 		certmanager.Register,
+		crossplane.Register,
+		externalsecrets.Register,
+		gatewayapi.Register,
 		kyverno.Register,
 		keda.Register,
 	} {

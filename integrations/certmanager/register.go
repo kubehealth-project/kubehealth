@@ -10,8 +10,9 @@ import (
 // Register adds supported cert-manager checks to an assessor.
 func Register(assessor *kubehealth.Assessor) error {
 	checks := map[schema.GroupVersionKind]kubehealth.Check{
-		{Group: "cert-manager.io", Version: "v1", Kind: "Certificate"}: certificate,
-		{Group: "cert-manager.io", Version: "v1", Kind: "Issuer"}:      issuer,
+		{Group: "cert-manager.io", Version: "v1", Kind: "Certificate"}:   certificate,
+		{Group: "cert-manager.io", Version: "v1", Kind: "Issuer"}:        issuer,
+		{Group: "cert-manager.io", Version: "v1", Kind: "ClusterIssuer"}: issuer,
 	}
 	for gvk, check := range checks {
 		if err := assessor.Register(gvk, check); err != nil {

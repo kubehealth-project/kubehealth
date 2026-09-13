@@ -1,0 +1,9 @@
+{
+  "apiVersion": "pkg.crossplane.io/v1",
+  "kind": "ProviderRevision",
+  "metadata": {"name": "provider-example-old"},
+  "spec": {"desiredState": "Inactive"},
+  "status": {"conditions": [
+    {"type": "RevisionHealthy", "status": "True", "reason": "HealthyPackageRevision"}
+  ]}
+}

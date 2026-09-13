@@ -1,0 +1,11 @@
+{
+  "apiVersion": "pkg.crossplane.io/v1",
+  "kind": "ProviderRevision",
+  "metadata": {"name": "provider-example-abc123"},
+  "spec": {"desiredState": "Active"},
+  "status": {"conditions": [
+    {"type": "RevisionHealthy", "status": "True", "reason": "HealthyPackageRevision"},
+    {"type": "RuntimeHealthy", "status": "True", "reason": "Healthy"},
+    {"type": "RuntimeActive", "status": "False", "reason": "AwaitingActivation"}
+  ]}
+}

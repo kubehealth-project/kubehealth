@@ -98,7 +98,7 @@ assessment boundary.
 
 ## Precedence and merging
 
-Standard kstatus signals determine reconciliation before resource-specific
+Generic KubeHealth signals determine reconciliation before resource-specific
 rules. A resource-specific check still runs to determine availability.
 
 This prevents custom checks from overriding explicit `Stalled=True` or stale

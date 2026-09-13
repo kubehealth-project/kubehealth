@@ -13,6 +13,11 @@ import (
 // Condition is the common Kubernetes condition shape used by kstatus.
 type Condition = api.Condition
 
+// assessStandardStatus evaluates generic lifecycle and reconciliation signals
+// shared by many Kubernetes resources. Keeping these checks here avoids
+// repeatedly implementing deletion, observed-generation, Reconciling, and
+// Stalled handling in every resource-specific check. The returned boolean says
+// whether a standard signal made an authoritative decision.
 func assessStandardStatus(obj *unstructured.Unstructured) (Assessment, bool, error) {
 	if obj.GetDeletionTimestamp() != nil {
 		return Assessment{

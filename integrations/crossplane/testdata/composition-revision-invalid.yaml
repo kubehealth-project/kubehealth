@@ -1,0 +1,8 @@
+{
+  "apiVersion": "apiextensions.crossplane.io/v1",
+  "kind": "CompositionRevision",
+  "metadata": {"name": "example-abc123"},
+  "status": {"conditions": [
+    {"type": "ValidPipeline", "status": "False", "reason": "InvalidPipeline", "message": "referenced function does not exist"}
+  ]}
+}

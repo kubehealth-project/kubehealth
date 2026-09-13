@@ -1,0 +1,8 @@
+{
+  "apiVersion": "apiextensions.crossplane.io/v2",
+  "kind": "CompositeResourceDefinition",
+  "metadata": {"name": "examples.example.org"},
+  "status": {"conditions": [
+    {"type": "Established", "status": "True", "reason": "WatchingCompositeResource"}
+  ]}
+}

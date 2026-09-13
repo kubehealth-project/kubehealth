@@ -1,0 +1,9 @@
+{
+  "apiVersion": "storage.example.org/v1",
+  "kind": "Bucket",
+  "metadata": {"name": "example"},
+  "status": {"conditions": [
+    {"type": "Ready", "status": "True", "reason": "Available"},
+    {"type": "Synced", "status": "False", "reason": "ReconcilePaused"}
+  ]}
+}

@@ -141,18 +141,19 @@ A failed Deployment rollout with healthy old replicas can return:
 ```
 
 ## Assessment order
+1. Check kubehealth statuses. If all three dimensions are already present, return them immediately.
+2. Evaluate generic lifecycle and reconciliation signals shared by resource
+   types, such as deletion, stale observed generation, `Reconciling=True`, and
+   `Stalled=True`.
+3. Run the registered resource-specific check to compute resource-specific
+   reconciliation and availability.
+5. If a generic signal already determined reconciliation, keep that result while
+   retaining availability from the resource-specific check. Otherwise, use the
+   resource-specific reconciliation result.
+6. If no registered check or generic signal can determine a dimension, return
+   `Unknown` for that dimension.
 
-1. Evaluate deletion and presence signals for lifecycle.
-2. Evaluate standard kstatus signals for reconciliation.
-3. Run the registered resource-specific check to compute availability.
-4. Use the custom check's reconciliation result only when no standard signal
-   already decided it.
-5. If no check is registered, retain any standard reconciliation result and set
-   availability to `Unknown`.
-6. If neither standard signals nor a check can assess the resource, return
-   `Unknown` for reconciliation and availability.
-
-Standard reconciliation signals do not suppress resource-specific checks. This
+Generic reconciliation signals do not suppress resource-specific checks. This
 allows combinations such as `Failed + Available` and
 `InProgress + PartiallyAvailable`.
 
@@ -231,20 +232,47 @@ integrations/
       register.go
       rollout.go
       rollout_test.go
+    crossplane/
+    externalsecrets/
+    gatewayapi/
 ```
 
 The demonstration catalog includes:
 
 - cert-manager `Certificate`
 - cert-manager `Issuer`
+- cert-manager `ClusterIssuer`
 - Kyverno `Policy`
 - Kyverno `ClusterPolicy`
 - KEDA `ScaledObject`
 - Argo Rollouts `Rollout`
+- Crossplane core package, revision, composition, runtime configuration, and
+  composite resource definition APIs
+- Gateway API `GatewayClass`, `Gateway`, `HTTPRoute`, `GRPCRoute`, and
+  `BackendTLSPolicy`
+- External Secrets Operator `ExternalSecret`, `ClusterExternalSecret`,
+  `SecretStore`, `ClusterSecretStore`, and `PushSecret`
 
 The Rollout check reports reconciliation and replica availability independently.
 A failed or paused rollout can therefore remain `Available` when its stable
 replicas continue serving.
+
+Crossplane's generated composite and managed-resource GVKs cannot be known by
+the library in advance. Consumers register the exact GVKs they use while reusing
+the native Crossplane condition semantics:
+
+```go
+err := crossplane.RegisterManagedResources(
+	assessor,
+	schema.GroupVersionKind{
+		Group: "s3.aws.upbound.io", Version: "v1beta1", Kind: "Bucket",
+	},
+)
+```
+
+This keeps version matching explicit instead of applying a wildcard check to
+every resource whose API group happens to contain `crossplane.io` or
+`upbound.io`.
 
 Consumers can select only the integrations they need:
 
@@ -381,7 +409,7 @@ err := assessor.Register(
 )
 ```
 
-Standard kstatus conditions retain precedence for reconciliation. The custom
+Generic KubeHealth conditions retain precedence for reconciliation. The custom
 check still runs to supply availability. Checks register by exact Group,
 Version, and Kind so health logic can evolve with API versions.
 
@@ -437,7 +465,7 @@ To call a check KubeHealth-compliant, it must:
 
 1. Return reconciliation, availability, and lifecycle.
 2. Evaluate the latest desired generation where the resource supports it.
-3. Preserve standard kstatus reconciliation signals.
+3. Preserve generic KubeHealth reconciliation signals.
 4. Keep availability independent from reconciliation failure.
 5. Use `Unknown` when the object does not provide enough evidence.
 6. Use `NotApplicable` only when a dimension is not meaningful.

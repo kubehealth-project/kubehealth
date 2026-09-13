@@ -51,7 +51,7 @@ const (
 
 // Dimension contains a health value and the metadata explaining that value.
 //
-// The same type is used for in-memory assessments and operator-published
+// The same type is used for in-memory assessments and operator-reported
 // status. This keeps the health model identical at both boundaries.
 type Dimension[T ~string] struct {
 	Status             T            `json:"status"`

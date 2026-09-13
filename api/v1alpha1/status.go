@@ -14,7 +14,7 @@ const ContractVersion = "v1alpha1"
 
 var reasonPattern = regexp.MustCompile(`^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$`)
 
-// Status is an operator-published KubeHealth assessment.
+// Status is an operator-reported KubeHealth assessment.
 //
 // It is intended to be embedded as an optional status.kubeHealth field in a
 // Kubernetes API type. An authoritative report contains all three dimensions
@@ -65,7 +65,7 @@ type AvailabilityDimension = api.Dimension[api.AvailabilityStatus]
 // LifecycleDimension is the shared lifecycle dimension type.
 type LifecycleDimension = api.Dimension[api.LifecycleStatus]
 
-// ToAssessment converts the published status to the canonical assessment.
+// ToAssessment converts the reported status to the canonical assessment.
 func (s Status) ToAssessment() api.Assessment {
 	return api.Assessment{
 		Reconciliation: s.Reconciliation,
@@ -75,7 +75,7 @@ func (s Status) ToAssessment() api.Assessment {
 }
 
 // NewStatus creates an empty report for the supplied resource generation.
-// Set all three dimensions before publishing it.
+// Set all three dimensions before reporting it.
 func NewStatus(observedGeneration int64) *Status {
 	return &Status{
 		ContractVersion:    ContractVersion,

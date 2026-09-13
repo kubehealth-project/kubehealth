@@ -13,7 +13,7 @@ import (
 
 var widgetGVK = schema.GroupVersionKind{Group: "example.io", Version: "v1", Kind: "Widget"}
 
-func TestPublishedStatusSkipsEntireAssessment(t *testing.T) {
+func TestReportedStatusSkipsEntireAssessment(t *testing.T) {
 	assessor := kubehealth.NewAssessor()
 	checkCalls := 0
 	if err := assessor.Register(widgetGVK, func(*unstructured.Unstructured) (kubehealth.Assessment, error) {
@@ -25,7 +25,7 @@ func TestPublishedStatusSkipsEntireAssessment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	obj := widget(4, publishedStatus(4, "Failed", "Available", "Active"))
+	obj := widget(4, reportedStatus(4, "Failed", "Available", "Active"))
 	obj.Object["status"].(map[string]any)["conditions"] = "malformed but not evaluated"
 	got, err := assessor.Assess(obj)
 	if err != nil {
@@ -45,8 +45,8 @@ func TestPublishedStatusSkipsEntireAssessment(t *testing.T) {
 	}
 }
 
-func TestPublishedStatusAcceptsExplicitUnknown(t *testing.T) {
-	obj := widget(1, publishedStatus(1, "Unknown", "Unknown", "Active"))
+func TestReportedStatusAcceptsExplicitUnknown(t *testing.T) {
+	obj := widget(1, reportedStatus(1, "Unknown", "Unknown", "Active"))
 	got, err := kubehealth.Assess(obj)
 	if err != nil {
 		t.Fatal(err)
@@ -56,7 +56,7 @@ func TestPublishedStatusAcceptsExplicitUnknown(t *testing.T) {
 	}
 }
 
-func TestPartialPublishedStatusFallsBackToRegisteredCheck(t *testing.T) {
+func TestPartialReportedStatusFallsBackToRegisteredCheck(t *testing.T) {
 	assessor := kubehealth.NewAssessor()
 	checkCalls := 0
 	if err := assessor.Register(widgetGVK, func(*unstructured.Unstructured) (kubehealth.Assessment, error) {
@@ -68,7 +68,7 @@ func TestPartialPublishedStatusFallsBackToRegisteredCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	status := publishedStatus(1, "Failed", "Unavailable", "Active")
+	status := reportedStatus(1, "Failed", "Unavailable", "Active")
 	delete(status, "lifecycle")
 	got, err := assessor.Assess(widget(1, status))
 	if err != nil {
@@ -82,7 +82,7 @@ func TestPartialPublishedStatusFallsBackToRegisteredCheck(t *testing.T) {
 	}
 }
 
-func TestMalformedPartialPublishedStatusFallsBackToRegisteredCheck(t *testing.T) {
+func TestMalformedPartialReportedStatusFallsBackToRegisteredCheck(t *testing.T) {
 	assessor := kubehealth.NewAssessor()
 	checkCalls := 0
 	if err := assessor.Register(widgetGVK, func(*unstructured.Unstructured) (kubehealth.Assessment, error) {
@@ -94,7 +94,7 @@ func TestMalformedPartialPublishedStatusFallsBackToRegisteredCheck(t *testing.T)
 		t.Fatal(err)
 	}
 
-	status := publishedStatus(1, "Failed", "Unavailable", "Active")
+	status := reportedStatus(1, "Failed", "Unavailable", "Active")
 	status["reconciliation"] = "malformed"
 	delete(status, "lifecycle")
 	got, err := assessor.Assess(widget(1, status))
@@ -109,7 +109,7 @@ func TestMalformedPartialPublishedStatusFallsBackToRegisteredCheck(t *testing.T)
 	}
 }
 
-func TestStalePublishedStatusRunsRegisteredCheck(t *testing.T) {
+func TestStaleReportedStatusRunsRegisteredCheck(t *testing.T) {
 	assessor := kubehealth.NewAssessor()
 	checkCalls := 0
 	if err := assessor.Register(widgetGVK, func(*unstructured.Unstructured) (kubehealth.Assessment, error) {
@@ -121,7 +121,7 @@ func TestStalePublishedStatusRunsRegisteredCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := assessor.Assess(widget(2, publishedStatus(1, "Reconciled", "Available", "Active")))
+	got, err := assessor.Assess(widget(2, reportedStatus(1, "Reconciled", "Available", "Active")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,8 +139,8 @@ func TestStalePublishedStatusRunsRegisteredCheck(t *testing.T) {
 	}
 }
 
-func TestStalePublishedStatusSuppliesAvailabilityWithoutRegisteredCheck(t *testing.T) {
-	got, err := kubehealth.Assess(widget(2, publishedStatus(1, "Reconciled", "Available", "Active")))
+func TestStaleReportedStatusSuppliesAvailabilityWithoutRegisteredCheck(t *testing.T) {
+	got, err := kubehealth.Assess(widget(2, reportedStatus(1, "Reconciled", "Available", "Active")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestStalePublishedStatusSuppliesAvailabilityWithoutRegisteredCheck(t *testi
 	}
 }
 
-func TestDeletingPublishedStatusCanReturnImmediately(t *testing.T) {
+func TestDeletingReportedStatusCanReturnImmediately(t *testing.T) {
 	assessor := kubehealth.NewAssessor()
 	checkCalls := 0
 	if err := assessor.Register(widgetGVK, func(*unstructured.Unstructured) (kubehealth.Assessment, error) {
@@ -158,7 +158,7 @@ func TestDeletingPublishedStatusCanReturnImmediately(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	obj := widget(2, publishedStatus(2, "InProgress", "Available", "Terminating"))
+	obj := widget(2, reportedStatus(2, "InProgress", "Available", "Terminating"))
 	now := metav1.Now()
 	obj.SetDeletionTimestamp(&now)
 
@@ -174,7 +174,7 @@ func TestDeletingPublishedStatusCanReturnImmediately(t *testing.T) {
 	}
 }
 
-func TestDeletionTimestampMakesActivePublishedStatusIneligible(t *testing.T) {
+func TestDeletionTimestampMakesActiveReportedStatusIneligible(t *testing.T) {
 	assessor := kubehealth.NewAssessor()
 	checkCalls := 0
 	if err := assessor.Register(widgetGVK, func(*unstructured.Unstructured) (kubehealth.Assessment, error) {
@@ -185,7 +185,7 @@ func TestDeletionTimestampMakesActivePublishedStatusIneligible(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	obj := widget(2, publishedStatus(2, "Reconciled", "Unavailable", "Active"))
+	obj := widget(2, reportedStatus(2, "Reconciled", "Unavailable", "Active"))
 	now := metav1.Now()
 	obj.SetDeletionTimestamp(&now)
 
@@ -201,16 +201,16 @@ func TestDeletionTimestampMakesActivePublishedStatusIneligible(t *testing.T) {
 	}
 }
 
-func TestPublishedStatusRejectsInvalidCompleteReports(t *testing.T) {
+func TestReportedStatusRejectsInvalidCompleteReports(t *testing.T) {
 	tests := []struct {
 		name   string
 		status map[string]any
 		want   string
 	}{
-		{"unsupported contract", publishedStatusWithVersion("v2", 1, "Reconciled", "Available", "Active"), "unsupported KubeHealth contract version"},
-		{"future generation", publishedStatus(2, "Reconciled", "Available", "Active"), "newer than metadata.generation"},
-		{"invalid status", publishedStatus(1, "Healthy", "Available", "Active"), "invalid reconciliation status"},
-		{"terminating without deletion", publishedStatus(1, "Reconciled", "Available", "Terminating"), "metadata.deletionTimestamp is not set"},
+		{"unsupported contract", reportedStatusWithVersion("v2", 1, "Reconciled", "Available", "Active"), "unsupported KubeHealth contract version"},
+		{"future generation", reportedStatus(2, "Reconciled", "Available", "Active"), "newer than metadata.generation"},
+		{"invalid status", reportedStatus(1, "Healthy", "Available", "Active"), "invalid reconciliation status"},
+		{"terminating without deletion", reportedStatus(1, "Reconciled", "Available", "Terminating"), "metadata.deletionTimestamp is not set"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -234,11 +234,11 @@ func widget(generation int64, kubeHealth map[string]any) *unstructured.Unstructu
 	}}
 }
 
-func publishedStatus(generation int64, reconciliation, availability, lifecycle string) map[string]any {
-	return publishedStatusWithVersion("v1alpha1", generation, reconciliation, availability, lifecycle)
+func reportedStatus(generation int64, reconciliation, availability, lifecycle string) map[string]any {
+	return reportedStatusWithVersion("v1alpha1", generation, reconciliation, availability, lifecycle)
 }
 
-func publishedStatusWithVersion(version string, generation int64, reconciliation, availability, lifecycle string) map[string]any {
+func reportedStatusWithVersion(version string, generation int64, reconciliation, availability, lifecycle string) map[string]any {
 	return map[string]any{
 		"contractVersion":    version,
 		"observedGeneration": generation,

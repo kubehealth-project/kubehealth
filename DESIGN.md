@@ -95,7 +95,7 @@ also outside the object-only assessment boundary.
 
 ## Precedence and merging
 
-An operator-published report under `status.kubeHealth` has the highest health
+An operator-reported assessment under `status.kubeHealth` has the highest health
 precedence when it is complete, valid, current for `metadata.generation`, and
 consistent with `metadata.deletionTimestamp`. KubeHealth returns such a report
 without evaluating generic signals or running a registered check. This makes
@@ -118,12 +118,12 @@ generation. A higher observed value is accepted rather than treated as stale.
 
 The embedded status contract is stricter: its `observedGeneration` must equal
 `metadata.generation` for the fast path. A lower value means the complete report
-is stale. In that case KubeHealth reports `InProgress`, keeps the published
+is stale. In that case KubeHealth reports `InProgress`, keeps the reported
 availability when no check is registered, and still runs a registered check so
 that resource-specific current availability can replace it. A higher value is
 invalid because it cannot honestly describe the object's current generation.
 
-### Operator-published status contract
+### Operator-reported status contract
 
 The persisted contract is versioned independently from the owning resource and
 lives in `api/v1alpha1`. Its wire location is `status.kubeHealth`:
@@ -151,11 +151,11 @@ kubeHealth:
 The nested shape keeps each dimension's status, reason, message, and transition
 time together. The same `Dimension[T]` type is used by the persisted status and
 the in-memory `Assessment`, so all four fields remain available when an
-operator-published report is returned. Reason, message, and transition time are
+operator-reported assessment is returned. Reason, message, and transition time are
 optional in the first contract version.
 
 Checks computed from an object may not know a meaningful transition time and can
-leave it empty. Operator-published reports can maintain it across reconciliations
+leave it empty. Operator-reported assessments can maintain it across reconciliations
 with the `api/v1alpha1` setter helpers.
 
 The report is all-or-nothing. All three status values, the contract version,
@@ -175,7 +175,7 @@ The contract intentionally does not encode KubeHealth as three
 `metav1.Condition` entries. Standard conditions expose only `True`, `False`,
 and `Unknown`, which cannot preserve `InProgress`, `Failed`, `Suspended`,
 `PartiallyAvailable`, and `NotApplicable` without misusing `reason` as the
-primary state. Operators should continue to publish their normal conditions in
+primary state. Operators should continue to report their normal conditions in
 parallel for Kubernetes ecosystem tooling.
 
 This follows the relevant Kubernetes API conventions: observed state belongs
@@ -183,7 +183,7 @@ under status, controllers should write through the status subresource,
 `observedGeneration` identifies freshness, reasons are programmatic CamelCase
 identifiers, messages are human-readable, and transition times change only when
 the observed status changes. CRDs should not default this field because absence
-must mean no authoritative report has been published.
+must mean no authoritative assessment has been reported.
 
 See the Kubernetes
 [API conventions for spec and status](https://github.com/kubernetes/community/blob/main/contributors/devel/sig-architecture/api-conventions.md#spec-and-status)
@@ -233,7 +233,7 @@ rather than maintaining separate in-memory and persisted dimension models.
 Reasons:
 
 - Status, reason, message, and transition time remain together.
-- The same type is used by resource checks and operator-published status.
+- The same type is used by resource checks and operator-reported status.
 - JSON remains flat at the three dimension keys and nested within each dimension.
 - Generic code can work consistently across the three dimension types.
 
@@ -366,7 +366,7 @@ The implementation is split into layers:
 
 ```text
 kubehealth/api           stable assessment model
-kubehealth/api/v1alpha1  operator-published status contract
+kubehealth/api/v1alpha1  operator-reported status contract
 kubehealth/builtins      Kubernetes-native resource checks
 kubehealth/internal      shared non-public implementation helpers
 kubehealth/integrations  third-party project checks

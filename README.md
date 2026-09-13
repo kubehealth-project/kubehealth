@@ -175,9 +175,9 @@ Generic reconciliation signals do not suppress resource-specific checks. This
 allows combinations such as `Failed + Available` and
 `InProgress + PartiallyAvailable`.
 
-## Publish health from an operator
+## Report health from an operator
 
-A custom-resource operator can publish an authoritative KubeHealth report under
+A custom-resource operator can report an authoritative KubeHealth assessment under
 `status.kubeHealth`. This lets the API maintainer define health using domain
 knowledge without requiring consumers to register a resource-specific check.
 
@@ -360,7 +360,7 @@ not automatically import ecosystem integrations.
 
 Resource health checks are first-class whether they are implemented in Go or
 Lua. Both register an exact Group, Version, and Kind in the same assessor and
-produce the same `Assessment`. Standard KubeHealth reconciliation signals retain
+produce the same `Assessment`. Generic KubeHealth reconciliation signals retain
 the same precedence for both implementations.
 
 Use Go for compiled integrations:
@@ -368,9 +368,15 @@ Use Go for compiled integrations:
 ```go
 err := assessor.Register(gvk, func(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 	return kubehealth.Assessment{
-		Reconciliation: kubehealth.ReconciliationReconciled,
-		Availability:   kubehealth.AvailabilityAvailable,
-		Lifecycle:      kubehealth.LifecycleActive,
+		Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{
+			Status: kubehealth.ReconciliationReconciled,
+		},
+		Availability: kubehealth.Dimension[kubehealth.AvailabilityStatus]{
+			Status: kubehealth.AvailabilityAvailable,
+		},
+		Lifecycle: kubehealth.Dimension[kubehealth.LifecycleStatus]{
+			Status: kubehealth.LifecycleActive,
+		},
 	}, nil
 })
 ```
@@ -390,6 +396,7 @@ if obj.status ~= nil and obj.status.ready == true then
     reconciliation = "Reconciled",
     availability = "Available",
     lifecycle = "Active",
+    availabilityReason = "Ready",
     availabilityMessage = "Resource is ready"
   }
 end
@@ -398,9 +405,15 @@ return {
   reconciliation = "InProgress",
   availability = "Unavailable",
   lifecycle = "Active",
+  reconciliationReason = "WaitingForReadiness",
   reconciliationMessage = "Waiting for readiness"
 }
 ```
+
+Lua scripts may inspect resource conditions through `obj.status.conditions`,
+but they return only normalized dimensions. The optional reason fields are
+`reconciliationReason`, `availabilityReason`, and `lifecycleReason`. Lua checks
+do not return the source conditions.
 
 Lua checks run with a restricted standard library and a default 500 millisecond
 timeout. They cannot load files, packages, operating-system functions, or I/O.
@@ -450,25 +463,39 @@ err := assessor.Register(
 
 		if state == "Active" {
 			return kubehealth.Assessment{
-				Reconciliation:        kubehealth.ReconciliationReconciled,
-				Availability:          kubehealth.AvailabilityNotApplicable,
-				Lifecycle:             kubehealth.LifecycleActive,
-				ReconciliationMessage: "CleanupPolicy is active",
+				Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{
+					Status:  kubehealth.ReconciliationReconciled,
+					Reason:  "PolicyActive",
+					Message: "CleanupPolicy is active",
+				},
+				Availability: kubehealth.Dimension[kubehealth.AvailabilityStatus]{
+					Status: kubehealth.AvailabilityNotApplicable,
+				},
+				Lifecycle: kubehealth.Dimension[kubehealth.LifecycleStatus]{
+					Status: kubehealth.LifecycleActive,
+				},
 			}, nil
 		}
 
 		return kubehealth.Assessment{
-			Reconciliation:        kubehealth.ReconciliationInProgress,
-			Availability:          kubehealth.AvailabilityNotApplicable,
-			Lifecycle:             kubehealth.LifecycleActive,
-			ReconciliationMessage: "CleanupPolicy is becoming active",
+			Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{
+				Status:  kubehealth.ReconciliationInProgress,
+				Reason:  "Activating",
+				Message: "CleanupPolicy is becoming active",
+			},
+			Availability: kubehealth.Dimension[kubehealth.AvailabilityStatus]{
+				Status: kubehealth.AvailabilityNotApplicable,
+			},
+			Lifecycle: kubehealth.Dimension[kubehealth.LifecycleStatus]{
+				Status: kubehealth.LifecycleActive,
+			},
 		}, nil
 	},
 )
 ```
 
-Generic KubeHealth conditions retain precedence for reconciliation. The custom
-check still runs to supply availability. Checks register by exact Group,
+Generic KubeHealth reconciliation signals retain precedence. The custom check
+still runs to supply availability. Checks register by exact Group,
 Version, and Kind so health logic can evolve with API versions.
 
 ## kstatus compatibility
@@ -509,9 +536,9 @@ kstatusResult := kstatusadapter.Project(assessment)
 - `Reconciled`, `InProgress`, and `Failed` belong to reconciliation.
 - `Terminating` and `NotFound` belong to lifecycle.
 - Availability remains independent from both.
-- Each dimension has one scalar value and its own optional message.
+- Each dimension has a status and optional reason, message, and transition time.
 - Unknown resources do not default optimistically to `Reconciled`.
-- A generic `Dimension[T]` wrapper is intentionally deferred.
+- The shared generic `Dimension[T]` wrapper keeps in-memory and reported status data aligned.
 - The kstatus wrapper is a lossy compatibility projection, not the canonical
   health model.
 

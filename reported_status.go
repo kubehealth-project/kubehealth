@@ -9,59 +9,59 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-type publishedStatusState int
+type reportedStatusState int
 
 const (
-	publishedStatusAbsent publishedStatusState = iota
-	publishedStatusIncomplete
-	publishedStatusStale
-	publishedStatusCurrent
+	reportedStatusAbsent reportedStatusState = iota
+	reportedStatusIncomplete
+	reportedStatusStale
+	reportedStatusCurrent
 )
 
-func readPublishedStatus(obj *unstructured.Unstructured) (Assessment, publishedStatusState, error) {
+func readReportedStatus(obj *unstructured.Unstructured) (Assessment, reportedStatusState, error) {
 	value, found, err := unstructured.NestedFieldNoCopy(obj.Object, "status", "kubeHealth")
 	if err != nil {
-		return Assessment{}, publishedStatusAbsent, fmt.Errorf("read status.kubeHealth: %w", err)
+		return Assessment{}, reportedStatusAbsent, fmt.Errorf("read status.kubeHealth: %w", err)
 	}
 	if !found {
-		return Assessment{}, publishedStatusAbsent, nil
+		return Assessment{}, reportedStatusAbsent, nil
 	}
 
 	object, ok := value.(map[string]any)
 	if !ok {
-		return Assessment{}, publishedStatusAbsent, fmt.Errorf("read status.kubeHealth: expected an object, got %T", value)
+		return Assessment{}, reportedStatusAbsent, fmt.Errorf("read status.kubeHealth: expected an object, got %T", value)
 	}
-	complete, err := publishedStatusComplete(object)
+	complete, err := reportedStatusComplete(object)
 	if err != nil {
-		return Assessment{}, publishedStatusIncomplete, err
+		return Assessment{}, reportedStatusIncomplete, err
 	}
 	if !complete {
-		return Assessment{}, publishedStatusIncomplete, nil
+		return Assessment{}, reportedStatusIncomplete, nil
 	}
 
 	encoded, err := json.Marshal(object)
 	if err != nil {
-		return Assessment{}, publishedStatusIncomplete, fmt.Errorf("encode status.kubeHealth: %w", err)
+		return Assessment{}, reportedStatusIncomplete, fmt.Errorf("encode status.kubeHealth: %w", err)
 	}
 	var status healthv1alpha1.Status
 	if err := json.Unmarshal(encoded, &status); err != nil {
-		return Assessment{}, publishedStatusIncomplete, fmt.Errorf("decode status.kubeHealth: %w", err)
+		return Assessment{}, reportedStatusIncomplete, fmt.Errorf("decode status.kubeHealth: %w", err)
 	}
 	if err := status.Validate(); err != nil {
-		return Assessment{}, publishedStatusIncomplete, fmt.Errorf("validate status.kubeHealth: %w", err)
+		return Assessment{}, reportedStatusIncomplete, fmt.Errorf("validate status.kubeHealth: %w", err)
 	}
 
 	assessment := status.ToAssessment()
 	deleting := obj.GetDeletionTimestamp() != nil
 	if !deleting && status.Lifecycle.Status == api.LifecycleTerminating {
-		return Assessment{}, publishedStatusIncomplete, fmt.Errorf(
+		return Assessment{}, reportedStatusIncomplete, fmt.Errorf(
 			"validate status.kubeHealth: lifecycle is %q but metadata.deletionTimestamp is not set",
 			status.Lifecycle.Status,
 		)
 	}
 
 	if status.ObservedGeneration > obj.GetGeneration() {
-		return Assessment{}, publishedStatusIncomplete, fmt.Errorf(
+		return Assessment{}, reportedStatusIncomplete, fmt.Errorf(
 			"validate status.kubeHealth: observedGeneration %d is newer than metadata.generation %d",
 			status.ObservedGeneration, obj.GetGeneration(),
 		)
@@ -75,17 +75,17 @@ func readPublishedStatus(obj *unstructured.Unstructured) (Assessment, publishedS
 			Reconciliation: Dimension[ReconciliationStatus]{Status: ReconciliationInProgress, Reason: "LatestGenerationNotObserved", Message: message},
 			Availability:   assessment.Availability,
 			Lifecycle:      Dimension[LifecycleStatus]{Status: lifecycleFromMetadata(obj), Message: lifecycleMessageFromMetadata(obj)},
-		}, publishedStatusStale, nil
+		}, reportedStatusStale, nil
 	}
 
 	if deleting && status.Lifecycle.Status != api.LifecycleTerminating {
-		return Assessment{}, publishedStatusIncomplete, nil
+		return Assessment{}, reportedStatusIncomplete, nil
 	}
 
-	return assessment, publishedStatusCurrent, nil
+	return assessment, reportedStatusCurrent, nil
 }
 
-func publishedStatusComplete(object map[string]any) (bool, error) {
+func reportedStatusComplete(object map[string]any) (bool, error) {
 	if _, found := object["contractVersion"]; !found {
 		return false, nil
 	}

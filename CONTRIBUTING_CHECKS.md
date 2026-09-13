@@ -80,9 +80,9 @@ A contributed check must:
 
 An upstream operator can avoid a library-maintained resource check by adopting
 the versioned `status.kubeHealth` contract documented in
-[`README.md`](README.md#publish-health-from-an-operator). A complete, valid,
+[`README.md`](README.md#report-health-from-an-operator). A complete, valid,
 current report is authoritative and skips both generic evaluation and registered
-checks. Do not add a check merely to translate an operator-published KubeHealth
+checks. Do not add a check merely to translate an operator-reported KubeHealth
 report.
 
 ## Tests are mandatory and colocated

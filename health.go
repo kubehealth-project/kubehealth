@@ -51,7 +51,7 @@ type Dimension[T ~string] = api.Dimension[T]
 // Check computes status from resource-specific fields.
 type Check = api.Check
 
-// Assessor evaluates operator-published health, generic status signals, and
+// Assessor evaluates operator-reported health, generic status signals, and
 // resource-specific checks in that order.
 type Assessor struct {
 	mu     sync.RWMutex
@@ -100,24 +100,24 @@ func (a *Assessor) Assess(obj *unstructured.Unstructured) (Assessment, error) {
 		return Assessment{}, fmt.Errorf("resource GVK must not be empty")
 	}
 
-	published, publishedState, err := readPublishedStatus(obj)
+	reported, reportedState, err := readReportedStatus(obj)
 	if err != nil {
 		return unknownResult(err), err
 	}
-	if publishedState == publishedStatusCurrent {
-		return published, nil
+	if reportedState == reportedStatusCurrent {
+		return reported, nil
 	}
 
 	standard, decided, err := assessStandardStatus(obj)
 	if err != nil {
 		return unknownResult(err), err
 	}
-	if publishedState == publishedStatusStale {
+	if reportedState == reportedStatusStale {
 		if obj.GetDeletionTimestamp() == nil {
-			standard = published
+			standard = reported
 			decided = true
 		} else {
-			standard.Availability = published.Availability
+			standard.Availability = reported.Availability
 		}
 	}
 

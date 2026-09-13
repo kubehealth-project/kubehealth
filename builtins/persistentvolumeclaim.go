@@ -17,18 +17,21 @@ func assessPersistentVolumeClaim(obj *unstructured.Unstructured) (api.Assessment
 	switch claim.Status.Phase {
 	case corev1.ClaimBound:
 		return api.Assessment{
-			Reconciliation: api.ReconciliationReconciled, Availability: api.AvailabilityUnknown, Lifecycle: api.LifecycleActive,
-			ReconciliationMessage: "PVC is bound", AvailabilityMessage: "Bound does not prove the volume can be mounted or used",
+			Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: api.ReconciliationReconciled, Message: "PVC is bound"},
+			Availability:   api.Dimension[api.AvailabilityStatus]{Status: api.AvailabilityUnknown, Message: "Bound does not prove the volume can be mounted or used"},
+			Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 		}, nil
 	case corev1.ClaimLost:
 		return api.Assessment{
-			Reconciliation: api.ReconciliationFailed, Availability: api.AvailabilityUnavailable, Lifecycle: api.LifecycleActive,
-			ReconciliationMessage: "PVC is lost", AvailabilityMessage: "The bound volume is lost",
+			Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: api.ReconciliationFailed, Message: "PVC is lost"},
+			Availability:   api.Dimension[api.AvailabilityStatus]{Status: api.AvailabilityUnavailable, Message: "The bound volume is lost"},
+			Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 		}, nil
 	default:
 		return api.Assessment{
-			Reconciliation: api.ReconciliationInProgress, Availability: api.AvailabilityUnavailable, Lifecycle: api.LifecycleActive,
-			ReconciliationMessage: fmt.Sprintf("PVC is not bound. Phase: %s", claim.Status.Phase), AvailabilityMessage: "PVC is not bound",
+			Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: api.ReconciliationInProgress, Message: fmt.Sprintf("PVC is not bound. Phase: %s", claim.Status.Phase)},
+			Availability:   api.Dimension[api.AvailabilityStatus]{Status: api.AvailabilityUnavailable, Message: "PVC is not bound"},
+			Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 		}, nil
 	}
 }

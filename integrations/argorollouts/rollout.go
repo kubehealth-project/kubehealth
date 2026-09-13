@@ -21,9 +21,8 @@ func rollout(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 	availability, availabilityMessage := rolloutAvailability(obj)
 	result := func(status kubehealth.ReconciliationStatus, message string) kubehealth.Assessment {
 		return kubehealth.Assessment{
-			Reconciliation: status, Availability: availability, Lifecycle: kubehealth.LifecycleActive,
-			ReconciliationMessage: message, AvailabilityMessage: availabilityMessage,
-			Conditions: conditions,
+			Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: status, Message: message},
+			Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
 		}
 	}
 

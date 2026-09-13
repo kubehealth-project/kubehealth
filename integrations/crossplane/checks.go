@@ -222,12 +222,9 @@ func conditionMessage(condition *kubehealth.Condition, fallback string) string {
 
 func assessment(reconciliation kubehealth.ReconciliationStatus, availability kubehealth.AvailabilityStatus, reconciliationMessage, availabilityMessage string, conditions []kubehealth.Condition) kubehealth.Assessment {
 	return kubehealth.Assessment{
-		Reconciliation:        reconciliation,
-		Availability:          availability,
-		Lifecycle:             kubehealth.LifecycleActive,
-		ReconciliationMessage: reconciliationMessage,
-		AvailabilityMessage:   availabilityMessage,
-		Conditions:            conditions,
+		Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: reconciliation, Message: reconciliationMessage},
+		Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
+		Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive},
 	}
 }
 

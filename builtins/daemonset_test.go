@@ -33,7 +33,7 @@ func TestDaemonSet(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if assessment.Reconciliation != test.wantReconciliation || assessment.Availability != test.wantAvailability {
+			if assessment.Reconciliation.Status != test.wantReconciliation || assessment.Availability.Status != test.wantAvailability {
 				t.Fatalf("assessment = %#v", assessment)
 			}
 		})

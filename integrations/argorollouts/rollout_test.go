@@ -146,14 +146,14 @@ func TestRollout(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got.Reconciliation != tt.wantReconciliation || got.Availability != tt.wantAvailability {
+			if got.Reconciliation.Status != tt.wantReconciliation || got.Availability.Status != tt.wantAvailability {
 				t.Errorf("assessment = %s + %s, want %s + %s", got.Reconciliation, got.Availability, tt.wantReconciliation, tt.wantAvailability)
 			}
-			if got.ReconciliationMessage != tt.wantReconcileMessage {
-				t.Errorf("reconciliation message = %q, want %q", got.ReconciliationMessage, tt.wantReconcileMessage)
+			if got.Reconciliation.Message != tt.wantReconcileMessage {
+				t.Errorf("reconciliation message = %q, want %q", got.Reconciliation.Message, tt.wantReconcileMessage)
 			}
-			if got.AvailabilityMessage != tt.wantAvailabilityMessage {
-				t.Errorf("availability message = %q, want %q", got.AvailabilityMessage, tt.wantAvailabilityMessage)
+			if got.Availability.Message != tt.wantAvailabilityMessage {
+				t.Errorf("availability message = %q, want %q", got.Availability.Message, tt.wantAvailabilityMessage)
 			}
 		})
 	}
@@ -189,8 +189,8 @@ func TestRolloutBlueGreen(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got.Reconciliation != tt.want || got.ReconciliationMessage != tt.message {
-				t.Errorf("reconciliation = %q (%q), want %q (%q)", got.Reconciliation, got.ReconciliationMessage, tt.want, tt.message)
+			if got.Reconciliation.Status != tt.want || got.Reconciliation.Message != tt.message {
+				t.Errorf("reconciliation = %q (%q), want %q (%q)", got.Reconciliation, got.Reconciliation.Message, tt.want, tt.message)
 			}
 		})
 	}

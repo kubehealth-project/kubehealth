@@ -107,14 +107,14 @@ func TestStatefulSetLuaCheck(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if assessment.Reconciliation != test.wantReconciliation {
+			if assessment.Reconciliation.Status != test.wantReconciliation {
 				t.Fatalf("reconciliation = %q, want %q", assessment.Reconciliation, test.wantReconciliation)
 			}
-			if assessment.Availability != test.wantAvailability {
+			if assessment.Availability.Status != test.wantAvailability {
 				t.Fatalf("availability = %q, want %q", assessment.Availability, test.wantAvailability)
 			}
-			if assessment.ReconciliationMessage != test.wantReconcileMessage {
-				t.Fatalf("reconciliation message = %q, want %q", assessment.ReconciliationMessage, test.wantReconcileMessage)
+			if assessment.Reconciliation.Message != test.wantReconcileMessage {
+				t.Fatalf("reconciliation message = %q, want %q", assessment.Reconciliation.Message, test.wantReconcileMessage)
 			}
 		})
 	}

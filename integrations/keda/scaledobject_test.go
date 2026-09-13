@@ -36,10 +36,10 @@ func TestScaledObject(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got.Reconciliation != tt.want {
+			if got.Reconciliation.Status != tt.want {
 				t.Errorf("reconciliation = %q, want %q", got.Reconciliation, tt.want)
 			}
-			if got.Availability != kubehealth.AvailabilityNotApplicable {
+			if got.Availability.Status != kubehealth.AvailabilityNotApplicable {
 				t.Errorf("availability = %q", got.Availability)
 			}
 		})

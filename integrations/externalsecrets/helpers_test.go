@@ -46,13 +46,13 @@ func conditions(items ...map[string]any) map[string]any {
 
 func assertAssessment(t *testing.T, got kubehealth.Assessment, reconciliation kubehealth.ReconciliationStatus, availability kubehealth.AvailabilityStatus) {
 	t.Helper()
-	if got.Reconciliation != reconciliation {
+	if got.Reconciliation.Status != reconciliation {
 		t.Errorf("reconciliation = %q, want %q", got.Reconciliation, reconciliation)
 	}
-	if got.Availability != availability {
+	if got.Availability.Status != availability {
 		t.Errorf("availability = %q, want %q", got.Availability, availability)
 	}
-	if got.Lifecycle != kubehealth.LifecycleActive {
+	if got.Lifecycle.Status != kubehealth.LifecycleActive {
 		t.Errorf("lifecycle = %q, want %q", got.Lifecycle, kubehealth.LifecycleActive)
 	}
 }

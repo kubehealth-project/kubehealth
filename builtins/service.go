@@ -16,8 +16,9 @@ func assessService(obj *unstructured.Unstructured) (api.Assessment, error) {
 	}
 	if service.Spec.Type == corev1.ServiceTypeLoadBalancer && len(service.Status.LoadBalancer.Ingress) == 0 {
 		return api.Assessment{
-			Reconciliation: api.ReconciliationInProgress, Availability: api.AvailabilityUnavailable, Lifecycle: api.LifecycleActive,
-			ReconciliationMessage: "Waiting for load balancer ingress", AvailabilityMessage: "Load balancer ingress is not assigned",
+			Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: api.ReconciliationInProgress, Message: "Waiting for load balancer ingress"},
+			Availability:   api.Dimension[api.AvailabilityStatus]{Status: api.AvailabilityUnavailable, Message: "Load balancer ingress is not assigned"},
+			Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 		}, nil
 	}
 	availability := api.AvailabilityUnknown
@@ -27,7 +28,8 @@ func assessService(obj *unstructured.Unstructured) (api.Assessment, error) {
 		availabilityMessage = "Load balancer ingress is assigned"
 	}
 	return api.Assessment{
-		Reconciliation: api.ReconciliationReconciled, Availability: availability, Lifecycle: api.LifecycleActive,
-		ReconciliationMessage: "Service is reconciled", AvailabilityMessage: availabilityMessage,
+		Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: api.ReconciliationReconciled, Message: "Service is reconciled"},
+		Availability:   api.Dimension[api.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
+		Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 	}, nil
 }

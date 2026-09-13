@@ -25,9 +25,9 @@ var degradedHPAConditions = map[string]map[string]bool{
 
 func assessHPAV1(_ *unstructured.Unstructured) (api.Assessment, error) {
 	return api.Assessment{
-		Reconciliation: api.ReconciliationUnknown, Availability: api.AvailabilityNotApplicable,
-		Lifecycle:             api.LifecycleActive,
-		ReconciliationMessage: "autoscaling/v1 does not expose standardized HPA conditions",
+		Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: api.ReconciliationUnknown, Message: "autoscaling/v1 does not expose standardized HPA conditions"},
+		Availability:   api.Dimension[api.AvailabilityStatus]{Status: api.AvailabilityNotApplicable},
+		Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 	}, nil
 }
 
@@ -55,15 +55,16 @@ func assessHPAConditions(conditions []api.Condition) api.Assessment {
 
 func hpaAssessment(status api.ReconciliationStatus, condition api.Condition) api.Assessment {
 	return api.Assessment{
-		Reconciliation: status, Availability: api.AvailabilityNotApplicable, Lifecycle: api.LifecycleActive,
-		ReconciliationMessage: condition.Message,
-		Conditions:            []api.Condition{condition},
+		Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: status, Message: condition.Message},
+		Availability:   api.Dimension[api.AvailabilityStatus]{Status: api.AvailabilityNotApplicable},
+		Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 	}
 }
 
 func progressingHPA() api.Assessment {
 	return api.Assessment{
-		Reconciliation: api.ReconciliationInProgress, Availability: api.AvailabilityNotApplicable,
-		Lifecycle: api.LifecycleActive, ReconciliationMessage: "Waiting to Autoscale",
+		Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: api.ReconciliationInProgress, Message: "Waiting to Autoscale"},
+		Availability:   api.Dimension[api.AvailabilityStatus]{Status: api.AvailabilityNotApplicable},
+		Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 	}
 }

@@ -27,11 +27,9 @@ func Checks() map[schema.GroupVersionKind]api.Check {
 func assessAlwaysCurrent(kind string) api.Check {
 	return func(_ *unstructured.Unstructured) (api.Assessment, error) {
 		return api.Assessment{
-			Reconciliation:        api.ReconciliationReconciled,
-			Availability:          api.AvailabilityAvailable,
-			Lifecycle:             api.LifecycleActive,
-			ReconciliationMessage: kind + " is reconciled",
-			AvailabilityMessage:   kind + " exists",
+			Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: api.ReconciliationReconciled, Message: kind + " is reconciled"},
+			Availability:   api.Dimension[api.AvailabilityStatus]{Status: api.AvailabilityAvailable, Message: kind + " exists"},
+			Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 		}, nil
 	}
 }

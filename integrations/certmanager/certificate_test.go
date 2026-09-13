@@ -54,9 +54,6 @@ func TestCertificate(t *testing.T) {
 			}
 			got := assess(t, assessor, obj)
 			assertAssessment(t, got, tt.wantRec, tt.wantAvail, lifecycleOrActive(tt.wantLifecycle))
-			if len(tt.conditions) > 0 && len(got.Conditions) == 0 {
-				t.Error("conditions were not preserved")
-			}
 		})
 	}
 }
@@ -89,7 +86,7 @@ func assess(t *testing.T, assessor *kubehealth.Assessor, obj *unstructured.Unstr
 
 func assertAssessment(t *testing.T, got kubehealth.Assessment, reconciliation kubehealth.ReconciliationStatus, availability kubehealth.AvailabilityStatus, lifecycle kubehealth.LifecycleStatus) {
 	t.Helper()
-	if got.Reconciliation != reconciliation || got.Availability != availability || got.Lifecycle != lifecycle {
+	if got.Reconciliation.Status != reconciliation || got.Availability.Status != availability || got.Lifecycle.Status != lifecycle {
 		t.Fatalf("assessment = %#v, want reconciliation=%q availability=%q lifecycle=%q", got, reconciliation, availability, lifecycle)
 	}
 }

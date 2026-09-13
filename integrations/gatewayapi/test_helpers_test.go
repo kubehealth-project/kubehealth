@@ -48,13 +48,13 @@ func condition(conditionType, status, reason string, generation int64) map[strin
 
 func assertAssessment(t *testing.T, got kubehealth.Assessment, reconciliation kubehealth.ReconciliationStatus, availability kubehealth.AvailabilityStatus) {
 	t.Helper()
-	if got.Reconciliation != reconciliation {
-		t.Errorf("reconciliation = %q, want %q (%s)", got.Reconciliation, reconciliation, got.ReconciliationMessage)
+	if got.Reconciliation.Status != reconciliation {
+		t.Errorf("reconciliation = %q, want %q (%s)", got.Reconciliation, reconciliation, got.Reconciliation.Message)
 	}
-	if got.Availability != availability {
-		t.Errorf("availability = %q, want %q (%s)", got.Availability, availability, got.AvailabilityMessage)
+	if got.Availability.Status != availability {
+		t.Errorf("availability = %q, want %q (%s)", got.Availability, availability, got.Availability.Message)
 	}
-	if got.Lifecycle != kubehealth.LifecycleActive {
+	if got.Lifecycle.Status != kubehealth.LifecycleActive {
 		t.Errorf("lifecycle = %q, want %q", got.Lifecycle, kubehealth.LifecycleActive)
 	}
 }
@@ -76,7 +76,7 @@ func TestRegistersOnlyFiveV1GVKs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Reconciliation != kubehealth.ReconciliationUnknown {
+	if got.Reconciliation.Status != kubehealth.ReconciliationUnknown {
 		t.Fatalf("v1beta1 reconciliation = %q, want Unknown", got.Reconciliation)
 	}
 }
@@ -88,10 +88,10 @@ func TestGatewayAPILifecycleDeletion(t *testing.T) {
 	now := metav1.Now()
 	obj.SetDeletionTimestamp(&now)
 	got := assess(t, obj)
-	if got.Lifecycle != kubehealth.LifecycleTerminating {
+	if got.Lifecycle.Status != kubehealth.LifecycleTerminating {
 		t.Fatalf("lifecycle = %q, want Terminating", got.Lifecycle)
 	}
-	if got.Availability != kubehealth.AvailabilityAvailable {
+	if got.Availability.Status != kubehealth.AvailabilityAvailable {
 		t.Fatalf("availability = %q, want Available", got.Availability)
 	}
 }

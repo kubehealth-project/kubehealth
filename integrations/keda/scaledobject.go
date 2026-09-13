@@ -40,11 +40,8 @@ func scaledObject(obj *unstructured.Unstructured) (kubehealth.Assessment, error)
 
 func scaledObjectAssessment(reconciliation kubehealth.ReconciliationStatus, message string, conditions []kubehealth.Condition) kubehealth.Assessment {
 	return kubehealth.Assessment{
-		Reconciliation:        reconciliation,
-		Availability:          kubehealth.AvailabilityNotApplicable,
-		Lifecycle:             kubehealth.LifecycleActive,
-		ReconciliationMessage: message,
-		AvailabilityMessage:   "ScaledObject controls another resource and is not directly available",
-		Conditions:            conditions,
+		Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: reconciliation, Message: message},
+		Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: kubehealth.AvailabilityNotApplicable, Message: "ScaledObject controls another resource and is not directly available"},
+		Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive},
 	}
 }

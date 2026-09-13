@@ -141,13 +141,13 @@ func TestDeploymentScenariosKubeHealthAndKStatus(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if assessment.Reconciliation != tt.wantReconciliation {
+			if assessment.Reconciliation.Status != tt.wantReconciliation {
 				t.Errorf("reconciliation = %q, want %q", assessment.Reconciliation, tt.wantReconciliation)
 			}
-			if assessment.Availability != tt.wantAvailability {
+			if assessment.Availability.Status != tt.wantAvailability {
 				t.Errorf("availability = %q, want %q", assessment.Availability, tt.wantAvailability)
 			}
-			if assessment.Lifecycle != tt.wantLifecycle {
+			if assessment.Lifecycle.Status != tt.wantLifecycle {
 				t.Errorf("lifecycle = %q, want %q", assessment.Lifecycle, tt.wantLifecycle)
 			}
 		})

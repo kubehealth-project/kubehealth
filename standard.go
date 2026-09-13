@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// Condition is the common Kubernetes condition shape used by kstatus.
+// Condition is the common Kubernetes condition shape used by KubeHealth.
 type Condition = api.Condition
 
 // assessStandardStatus evaluates generic lifecycle and reconciliation signals
@@ -21,8 +21,8 @@ type Condition = api.Condition
 func assessStandardStatus(obj *unstructured.Unstructured) (Assessment, bool, error) {
 	if obj.GetDeletionTimestamp() != nil {
 		return Assessment{
-			Reconciliation: ReconciliationUnknown, Lifecycle: LifecycleTerminating,
-			LifecycleMessage: "Resource scheduled for deletion",
+			Reconciliation: Dimension[ReconciliationStatus]{Status: ReconciliationUnknown},
+			Lifecycle:      Dimension[LifecycleStatus]{Status: LifecycleTerminating, Message: "Resource scheduled for deletion"},
 		}, true, nil
 	}
 
@@ -33,13 +33,8 @@ func assessStandardStatus(obj *unstructured.Unstructured) (Assessment, bool, err
 			obj.GetKind(), obj.GetGeneration(), observedGeneration,
 		)
 		return Assessment{
-			Reconciliation:        ReconciliationInProgress,
-			Lifecycle:             LifecycleActive,
-			ReconciliationMessage: message,
-			Conditions: []Condition{{
-				Type: "Reconciling", Status: corev1.ConditionTrue,
-				Reason: "LatestGenerationNotObserved", Message: message,
-			}},
+			Reconciliation: Dimension[ReconciliationStatus]{Status: ReconciliationInProgress, Reason: "LatestGenerationNotObserved", Message: message},
+			Lifecycle:      Dimension[LifecycleStatus]{Status: LifecycleActive},
 		}, true, nil
 	}
 
@@ -49,10 +44,10 @@ func assessStandardStatus(obj *unstructured.Unstructured) (Assessment, bool, err
 	}
 	for _, condition := range conditions {
 		if condition.Type == "Reconciling" && condition.Status == corev1.ConditionTrue {
-			return Assessment{Reconciliation: ReconciliationInProgress, Lifecycle: LifecycleActive, ReconciliationMessage: condition.Message, Conditions: []Condition{condition}}, true, nil
+			return Assessment{Reconciliation: Dimension[ReconciliationStatus]{Status: ReconciliationInProgress, Reason: condition.Reason, Message: condition.Message}, Lifecycle: Dimension[LifecycleStatus]{Status: LifecycleActive}}, true, nil
 		}
 		if condition.Type == "Stalled" && condition.Status == corev1.ConditionTrue {
-			return Assessment{Reconciliation: ReconciliationFailed, Lifecycle: LifecycleActive, ReconciliationMessage: condition.Message, Conditions: []Condition{condition}}, true, nil
+			return Assessment{Reconciliation: Dimension[ReconciliationStatus]{Status: ReconciliationFailed, Reason: condition.Reason, Message: condition.Message}, Lifecycle: Dimension[LifecycleStatus]{Status: LifecycleActive}}, true, nil
 		}
 	}
 

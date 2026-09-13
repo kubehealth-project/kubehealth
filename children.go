@@ -81,7 +81,7 @@ func AggregateReconciliation(children []Assessment) ReconciliationStatus {
 	hasSuspended := false
 	hasUnknown := false
 	for _, child := range children {
-		switch child.Reconciliation {
+		switch child.Reconciliation.Status {
 		case ReconciliationFailed:
 			hasFailed = true
 		case ReconciliationInProgress:
@@ -129,7 +129,7 @@ func AggregateAvailability(children []Assessment) AvailabilityStatus {
 	hasUnknown := false
 
 	for _, child := range children {
-		switch child.Availability {
+		switch child.Availability.Status {
 		case AvailabilityAvailable:
 			hasAvailable = true
 		case AvailabilityUnavailable:

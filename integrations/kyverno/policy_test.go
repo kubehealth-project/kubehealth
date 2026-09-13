@@ -53,9 +53,6 @@ func testPolicyVersions(t *testing.T, kind string) {
 				}
 				got := assess(t, assessor, obj)
 				assertAssessment(t, got, tt.wantRec, tt.wantAvail, lifecycleOrActive(tt.wantLifecycle))
-				if len(tt.conditions) > 0 && len(got.Conditions) == 0 {
-					t.Error("conditions were not preserved")
-				}
 			})
 		}
 	}
@@ -74,13 +71,13 @@ func TestKyvernoExactGVKRegistration(t *testing.T) {
 	for _, version := range []string{"v1", "v2beta1"} {
 		for _, kind := range []string{"Policy", "ClusterPolicy"} {
 			got := assess(t, assessor, policy("kyverno.io/"+version, kind, nil))
-			if got.Reconciliation == kubehealth.ReconciliationUnknown {
+			if got.Reconciliation.Status == kubehealth.ReconciliationUnknown {
 				t.Errorf("kyverno.io/%s %s was not registered", version, kind)
 			}
 		}
 	}
 	got := assess(t, assessor, policy("kyverno.io/v1beta1", "Policy", nil))
-	if got.Reconciliation != kubehealth.ReconciliationUnknown {
+	if got.Reconciliation.Status != kubehealth.ReconciliationUnknown {
 		t.Error("unsupported kyverno.io/v1beta1 Policy was registered")
 	}
 }
@@ -105,7 +102,7 @@ func assess(t *testing.T, assessor *kubehealth.Assessor, obj *unstructured.Unstr
 
 func assertAssessment(t *testing.T, got kubehealth.Assessment, reconciliation kubehealth.ReconciliationStatus, availability kubehealth.AvailabilityStatus, lifecycle kubehealth.LifecycleStatus) {
 	t.Helper()
-	if got.Reconciliation != reconciliation || got.Availability != availability || got.Lifecycle != lifecycle {
+	if got.Reconciliation.Status != reconciliation || got.Availability.Status != availability || got.Lifecycle.Status != lifecycle {
 		t.Fatalf("assessment = %#v, want reconciliation=%q availability=%q lifecycle=%q", got, reconciliation, availability, lifecycle)
 	}
 }

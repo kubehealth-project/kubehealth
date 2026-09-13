@@ -17,9 +17,9 @@ func route(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 	}
 	if len(desired) == 0 {
 		return kubehealth.Assessment{
-			Reconciliation: kubehealth.ReconciliationReconciled, Availability: kubehealth.AvailabilityNotApplicable,
-			Lifecycle: kubehealth.LifecycleActive, ReconciliationMessage: "Route does not request attachment to a parent",
-			AvailabilityMessage: "Route availability is not applicable without a parent attachment",
+			Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: kubehealth.ReconciliationReconciled, Message: "Route does not request attachment to a parent"},
+			Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: kubehealth.AvailabilityNotApplicable, Message: "Route availability is not applicable without a parent attachment"},
+			Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive},
 		}, nil
 	}
 	parents, _, err := unstructured.NestedSlice(obj.Object, "status", "parents")
@@ -65,8 +65,9 @@ func route(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 	}
 	reconciliation, availability, reconciliationMessage, availabilityMessage := aggregateAttachments(assessments)
 	return kubehealth.Assessment{
-		Reconciliation: reconciliation, Availability: availability, Lifecycle: kubehealth.LifecycleActive,
-		ReconciliationMessage: reconciliationMessage, AvailabilityMessage: availabilityMessage, Conditions: reported,
+		Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: reconciliation, Message: reconciliationMessage},
+		Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
+		Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive},
 	}, nil
 }
 

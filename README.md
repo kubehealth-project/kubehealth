@@ -104,19 +104,27 @@ in reconciliation.
 
 ## Assessment
 
-The KubeHealth assessment uses three scalar dimensions with separate messages:
+The KubeHealth assessment uses three normalized dimensions:
 
 ```go
 type Assessment struct {
-	Reconciliation ReconciliationStatus `json:"reconciliation"`
-	Availability   AvailabilityStatus   `json:"availability"`
-	Lifecycle      LifecycleStatus      `json:"lifecycle"`
+	Reconciliation Dimension[ReconciliationStatus] `json:"reconciliation"`
+	Availability   Dimension[AvailabilityStatus]   `json:"availability"`
+	Lifecycle      Dimension[LifecycleStatus]      `json:"lifecycle"`
+}
+```
 
-	ReconciliationMessage string `json:"reconciliationMessage,omitempty"`
-	AvailabilityMessage   string `json:"availabilityMessage,omitempty"`
-	LifecycleMessage      string `json:"lifecycleMessage,omitempty"`
+Each dimension contains `status` plus optional `reason`, `message`, and
+`lastTransitionTime` fields. Resource-specific Kubernetes conditions are input
+to assessment. They are normalized into the dimensions and are not returned
+separately.
 
-	Conditions []Condition `json:"conditions,omitempty"`
+```go
+type Dimension[T ~string] struct {
+	Status             T
+	Reason             string
+	Message            string
+	LastTransitionTime *metav1.Time
 }
 ```
 
@@ -132,30 +140,80 @@ A failed Deployment rollout with healthy old replicas can return:
 
 ```json
 {
-  "reconciliation": "Failed",
-  "availability": "Available",
-  "lifecycle": "Active",
-  "reconciliationMessage": "Deployment \"api\" exceeded its progress deadline",
-  "availabilityMessage": "3 replicas are available"
+  "reconciliation": {
+    "status": "Failed",
+    "reason": "ProgressDeadlineExceeded",
+    "message": "Deployment \"api\" exceeded its progress deadline"
+  },
+  "availability": {
+    "status": "Available",
+    "message": "3 replicas are available"
+  },
+  "lifecycle": {
+    "status": "Active"
+  }
 }
 ```
 
 ## Assessment order
-1. Check kubehealth statuses. If all three dimensions are already present, return them immediately.
+
+1. Check `status.kubeHealth`. If it contains a complete, valid, current report
+   for all three dimensions, return it immediately without running generic or
+   resource-specific checks.
 2. Evaluate generic lifecycle and reconciliation signals shared by resource
    types, such as deletion, stale observed generation, `Reconciling=True`, and
    `Stalled=True`.
 3. Run the registered resource-specific check to compute resource-specific
    reconciliation and availability.
-5. If a generic signal already determined reconciliation, keep that result while
+4. If a generic signal already determined reconciliation, keep that result while
    retaining availability from the resource-specific check. Otherwise, use the
    resource-specific reconciliation result.
-6. If no registered check or generic signal can determine a dimension, return
+5. If no registered check or generic signal can determine a dimension, return
    `Unknown` for that dimension.
 
 Generic reconciliation signals do not suppress resource-specific checks. This
 allows combinations such as `Failed + Available` and
 `InProgress + PartiallyAvailable`.
+
+## Publish health from an operator
+
+A custom-resource operator can publish an authoritative KubeHealth report under
+`status.kubeHealth`. This lets the API maintainer define health using domain
+knowledge without requiring consumers to register a resource-specific check.
+
+```yaml
+apiVersion: example.io/v1
+kind: Widget
+metadata:
+  name: example
+  generation: 12
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+      observedGeneration: 12
+      reason: PreviousRevisionServing
+      message: The previous revision remains operational
+      lastTransitionTime: "2026-09-13T11:55:00Z"
+  kubeHealth:
+    contractVersion: v1alpha1
+    observedGeneration: 12
+    reconciliation:
+      status: Failed
+      reason: ProgressDeadlineExceeded
+      message: The desired revision did not become ready before its deadline
+      lastTransitionTime: "2026-09-13T12:00:00Z"
+    availability:
+      status: Available
+      reason: PreviousRevisionServing
+      message: The previous revision continues to serve traffic
+      lastTransitionTime: "2026-09-13T11:55:00Z"
+    lifecycle:
+      status: Active
+      reason: DeletionNotRequested
+      message: The resource is active
+      lastTransitionTime: "2026-09-13T10:00:00Z"
+```
 
 ## Built-in checks
 

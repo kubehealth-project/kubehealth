@@ -31,7 +31,7 @@ func TestAggregateReconciliation(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assessments := make([]kubehealth.Assessment, 0, len(test.statuses))
 			for _, status := range test.statuses {
-				assessments = append(assessments, kubehealth.Assessment{Reconciliation: status})
+				assessments = append(assessments, kubehealth.Assessment{Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: status}})
 			}
 			if got := kubehealth.AggregateReconciliation(assessments); got != test.want {
 				t.Fatalf("AggregateReconciliation() = %q, want %q", got, test.want)
@@ -63,7 +63,7 @@ func TestAggregateAvailability(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assessments := make([]kubehealth.Assessment, 0, len(test.statuses))
 			for _, status := range test.statuses {
-				assessments = append(assessments, kubehealth.Assessment{Availability: status})
+				assessments = append(assessments, kubehealth.Assessment{Availability: kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: status}})
 			}
 			if got := kubehealth.AggregateAvailability(assessments); got != test.want {
 				t.Fatalf("AggregateAvailability() = %q, want %q", got, test.want)
@@ -74,8 +74,8 @@ func TestAggregateAvailability(t *testing.T) {
 
 func TestAggregateChildrenKeepsDimensionsIndependent(t *testing.T) {
 	got := kubehealth.AggregateChildren([]kubehealth.Assessment{
-		{Reconciliation: kubehealth.ReconciliationFailed, Availability: kubehealth.AvailabilityAvailable},
-		{Reconciliation: kubehealth.ReconciliationReconciled, Availability: kubehealth.AvailabilityAvailable},
+		{Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: kubehealth.ReconciliationFailed}, Availability: kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: kubehealth.AvailabilityAvailable}},
+		{Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: kubehealth.ReconciliationReconciled}, Availability: kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: kubehealth.AvailabilityAvailable}},
 	})
 
 	if got.Reconciliation != kubehealth.ReconciliationFailed {

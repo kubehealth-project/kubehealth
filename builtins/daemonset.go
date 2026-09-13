@@ -18,8 +18,9 @@ func assessDaemonSet(obj *unstructured.Unstructured) (api.Assessment, error) {
 	availability, availabilityMessage := daemonSetAvailability(&daemonSet)
 	result := func(reconciliation api.ReconciliationStatus, message string) api.Assessment {
 		return api.Assessment{
-			Reconciliation: reconciliation, Availability: availability, Lifecycle: api.LifecycleActive,
-			ReconciliationMessage: message, AvailabilityMessage: availabilityMessage,
+			Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: reconciliation, Message: message},
+			Availability:   api.Dimension[api.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
+			Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 		}
 	}
 

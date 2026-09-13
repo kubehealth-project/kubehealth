@@ -17,9 +17,9 @@ func assessDeployment(obj *unstructured.Unstructured) (api.Assessment, error) {
 	availability, availabilityMessage := deploymentAvailability(&deployment)
 	result := func(status api.ReconciliationStatus, message string) api.Assessment {
 		return api.Assessment{
-			Reconciliation: status, Availability: availability, Lifecycle: api.LifecycleActive,
-			ReconciliationMessage: message,
-			AvailabilityMessage:   availabilityMessage,
+			Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: status, Message: message},
+			Availability:   api.Dimension[api.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
+			Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 		}
 	}
 	if deployment.Spec.Paused {

@@ -3,8 +3,8 @@
 ## Implementation language
 
 A KubeHealth check can be implemented in Go or Lua. Both forms must return the
-same reconciliation, availability, lifecycle, messages, and optional conditions,
-and both are registered for an exact Group, Version, and Kind.
+same reconciliation, availability, and lifecycle dimensions, and both are
+registered for an exact Group, Version, and Kind.
 
 - Use Go for integrations compiled and maintained with the library.
 - Use Lua for checks loaded from consumer configuration or changed without
@@ -70,12 +70,20 @@ A contributed check must:
 2. Use `Unknown` when the object does not provide enough evidence.
 3. Use `NotApplicable` only when a dimension is not meaningful.
 4. Keep availability independent from reconciliation failure.
-5. Preserve useful conditions and dimension-specific messages.
+5. Normalize useful condition details into dimension-specific reasons and
+   messages rather than returning the original conditions.
 6. Avoid network or cluster access in the object-only check.
 7. Include tests for reconciled, progressing, failed, and ambiguous states that the
    resource can represent.
 8. Cite the upstream API documentation or implementation that defines the
    semantics.
+
+An upstream operator can avoid a library-maintained resource check by adopting
+the versioned `status.kubeHealth` contract documented in
+[`README.md`](README.md#publish-health-from-an-operator). A complete, valid,
+current report is authoritative and skips both generic evaluation and registered
+checks. Do not add a check merely to translate an operator-published KubeHealth
+report.
 
 ## Tests are mandatory and colocated
 

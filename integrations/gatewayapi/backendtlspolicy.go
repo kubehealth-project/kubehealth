@@ -16,9 +16,9 @@ func backendTLSPolicy(obj *unstructured.Unstructured) (kubehealth.Assessment, er
 	}
 	if len(ancestors) == 0 {
 		return kubehealth.Assessment{
-			Reconciliation: kubehealth.ReconciliationInProgress, Availability: kubehealth.AvailabilityUnknown,
-			Lifecycle: kubehealth.LifecycleActive, ReconciliationMessage: "Waiting for BackendTLSPolicy status",
-			AvailabilityMessage: "BackendTLSPolicy has no reported ancestors",
+			Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: kubehealth.ReconciliationInProgress, Message: "Waiting for BackendTLSPolicy status"},
+			Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: kubehealth.AvailabilityUnknown, Message: "BackendTLSPolicy has no reported ancestors"},
+			Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive},
 		}, nil
 	}
 	assessments := make([]attachmentAssessment, 0, len(ancestors))
@@ -39,8 +39,9 @@ func backendTLSPolicy(obj *unstructured.Unstructured) (kubehealth.Assessment, er
 	}
 	reconciliation, availability, reconciliationMessage, availabilityMessage := aggregateAttachments(assessments)
 	return kubehealth.Assessment{
-		Reconciliation: reconciliation, Availability: availability, Lifecycle: kubehealth.LifecycleActive,
-		ReconciliationMessage: reconciliationMessage, AvailabilityMessage: availabilityMessage, Conditions: reported,
+		Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: reconciliation, Message: reconciliationMessage},
+		Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
+		Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive},
 	}, nil
 }
 

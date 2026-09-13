@@ -35,8 +35,8 @@ func TestClusterExternalSecret(t *testing.T) {
 			}
 			assertAssessment(t, got, tt.reconcile, tt.availability)
 			if tt.availability == kubehealth.AvailabilityAvailable || tt.availability == kubehealth.AvailabilityPartiallyAvailable || tt.availability == kubehealth.AvailabilityUnavailable {
-				if !strings.Contains(got.AvailabilityMessage, "child ExternalSecret health is not evaluated") {
-					t.Errorf("availability message = %q, want child-health scope", got.AvailabilityMessage)
+				if !strings.Contains(got.Availability.Message, "child ExternalSecret health is not evaluated") {
+					t.Errorf("availability message = %q, want child-health scope", got.Availability.Message)
 				}
 			}
 		})

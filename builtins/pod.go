@@ -48,8 +48,9 @@ func assessPod(obj *unstructured.Unstructured) (api.Assessment, error) {
 
 func podAssessment(reconciliation api.ReconciliationStatus, availability api.AvailabilityStatus, reconciliationMessage, availabilityMessage string) api.Assessment {
 	return api.Assessment{
-		Reconciliation: reconciliation, Availability: availability, Lifecycle: api.LifecycleActive,
-		ReconciliationMessage: reconciliationMessage, AvailabilityMessage: availabilityMessage,
+		Reconciliation: api.Dimension[api.ReconciliationStatus]{Status: reconciliation, Message: reconciliationMessage},
+		Availability:   api.Dimension[api.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
+		Lifecycle:      api.Dimension[api.LifecycleStatus]{Status: api.LifecycleActive},
 	}
 }
 

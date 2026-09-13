@@ -43,13 +43,13 @@ func TestCertManagerExactGVKRegistration(t *testing.T) {
 	assessor := newAssessor(t)
 	for _, kind := range []string{"Certificate", "Issuer", "ClusterIssuer"} {
 		got := assess(t, assessor, resource("cert-manager.io/v1", kind, nil))
-		if got.Reconciliation == kubehealth.ReconciliationUnknown {
+		if got.Reconciliation.Status == kubehealth.ReconciliationUnknown {
 			t.Errorf("cert-manager.io/v1 %s was not registered", kind)
 		}
 	}
 	for _, apiVersion := range []string{"cert-manager.io/v1alpha2", "certmanager.k8s.io/v1alpha1"} {
 		got := assess(t, assessor, resource(apiVersion, "Certificate", nil))
-		if got.Reconciliation != kubehealth.ReconciliationUnknown {
+		if got.Reconciliation.Status != kubehealth.ReconciliationUnknown {
 			t.Errorf("historical %s Certificate was registered", apiVersion)
 		}
 	}

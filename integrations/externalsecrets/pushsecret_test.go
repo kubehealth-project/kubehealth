@@ -41,7 +41,7 @@ func TestPushSecretTerminatingRetainsReportedAvailability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Reconciliation != kubehealth.ReconciliationUnknown || got.Availability != kubehealth.AvailabilityAvailable || got.Lifecycle != kubehealth.LifecycleTerminating {
+	if got.Reconciliation.Status != kubehealth.ReconciliationUnknown || got.Availability.Status != kubehealth.AvailabilityAvailable || got.Lifecycle.Status != kubehealth.LifecycleTerminating {
 		t.Fatalf("assessment = %#v", got)
 	}
 }

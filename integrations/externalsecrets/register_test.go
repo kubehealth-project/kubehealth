@@ -25,7 +25,7 @@ func TestExactGVKRegistration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got.Reconciliation != kubehealth.ReconciliationInProgress {
+			if got.Reconciliation.Status != kubehealth.ReconciliationInProgress {
 				t.Errorf("reconciliation = %q, want %q", got.Reconciliation, kubehealth.ReconciliationInProgress)
 			}
 		})
@@ -52,11 +52,11 @@ func TestHistoricalAndSpeculativeGVKsAreNotRegistered(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got.Reconciliation != kubehealth.ReconciliationUnknown {
+			if got.Reconciliation.Status != kubehealth.ReconciliationUnknown {
 				t.Errorf("reconciliation = %q, want %q", got.Reconciliation, kubehealth.ReconciliationUnknown)
 			}
-			if !strings.Contains(got.ReconciliationMessage, "No health check registered") {
-				t.Errorf("message = %q, want unregistered check message", got.ReconciliationMessage)
+			if !strings.Contains(got.Reconciliation.Message, "No health check registered") {
+				t.Errorf("message = %q, want unregistered check message", got.Reconciliation.Message)
 			}
 		})
 	}

@@ -27,11 +27,10 @@ if ready then
     reconciliation = "Reconciled",
     availability = "Available",
     lifecycle = "Active",
+    reconciliationReason = "ReconciliationSucceeded",
     reconciliationMessage = "Widget is reconciled",
+    availabilityReason = "Ready",
     availabilityMessage = "Widget is ready",
-    conditions = {
-      { type = "Ready", status = "True", reason = "Ready", message = "Ready for use" }
-    }
   }
 end
 
@@ -54,14 +53,14 @@ func TestNewCheckAssessesObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if assessment.Reconciliation != kubehealth.ReconciliationReconciled {
+	if assessment.Reconciliation.Status != kubehealth.ReconciliationReconciled {
 		t.Fatalf("reconciliation = %q", assessment.Reconciliation)
 	}
-	if assessment.Availability != kubehealth.AvailabilityAvailable {
+	if assessment.Availability.Status != kubehealth.AvailabilityAvailable {
 		t.Fatalf("availability = %q", assessment.Availability)
 	}
-	if len(assessment.Conditions) != 1 || assessment.Conditions[0].Reason != "Ready" {
-		t.Fatalf("conditions = %#v", assessment.Conditions)
+	if assessment.Reconciliation.Reason != "ReconciliationSucceeded" || assessment.Availability.Reason != "Ready" {
+		t.Fatalf("reasons = %q, %q", assessment.Reconciliation.Reason, assessment.Availability.Reason)
 	}
 }
 
@@ -79,10 +78,10 @@ func TestRegisterUsesNormalAssessorPrecedence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if assessment.Reconciliation != kubehealth.ReconciliationInProgress {
+	if assessment.Reconciliation.Status != kubehealth.ReconciliationInProgress {
 		t.Fatalf("reconciliation = %q, want %q", assessment.Reconciliation, kubehealth.ReconciliationInProgress)
 	}
-	if assessment.Availability != kubehealth.AvailabilityAvailable {
+	if assessment.Availability.Status != kubehealth.AvailabilityAvailable {
 		t.Fatalf("availability = %q, want %q", assessment.Availability, kubehealth.AvailabilityAvailable)
 	}
 }
@@ -98,6 +97,7 @@ func TestNewCheckRejectsInvalidResults(t *testing.T) {
 		{name: "missing field", script: `return { availability = "Available", lifecycle = "Active" }`, want: `field "reconciliation"`},
 		{name: "invalid enum", script: `return { reconciliation = "Perfect", availability = "Available", lifecycle = "Active" }`, want: `invalid reconciliation value "Perfect"`},
 		{name: "invalid message", script: `return { reconciliation = "Reconciled", availability = "Available", lifecycle = "Active", availabilityMessage = 42 }`, want: `field "availabilityMessage" must be a string`},
+		{name: "invalid reason", script: `return { reconciliation = "Reconciled", reconciliationReason = 42, availability = "Available", lifecycle = "Active" }`, want: `field "reconciliationReason" must be a string`},
 	}
 
 	for _, test := range tests {

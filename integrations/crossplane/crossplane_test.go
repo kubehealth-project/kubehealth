@@ -31,10 +31,10 @@ func TestManagedResourceProfile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.fixture, func(t *testing.T) {
 			got := assessFixture(t, assessor, tt.fixture)
-			if got.Reconciliation != tt.wantReconciliation || got.Availability != tt.wantAvailability {
+			if got.Reconciliation.Status != tt.wantReconciliation || got.Availability.Status != tt.wantAvailability {
 				t.Fatalf("assessment = %#v, want reconciliation %q and availability %q", got, tt.wantReconciliation, tt.wantAvailability)
 			}
-			if got.Lifecycle != kubehealth.LifecycleActive {
+			if got.Lifecycle.Status != kubehealth.LifecycleActive {
 				t.Errorf("lifecycle = %q, want %q", got.Lifecycle, kubehealth.LifecycleActive)
 			}
 		})
@@ -64,7 +64,7 @@ func TestManagedResourceAmbiguousStates(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			obj := resource(gvk, tt.conditions)
 			got := assess(t, assessor, obj)
-			if got.Reconciliation != tt.wantReconciliation || got.Availability != tt.wantAvailability {
+			if got.Reconciliation.Status != tt.wantReconciliation || got.Availability.Status != tt.wantAvailability {
 				t.Fatalf("assessment = %#v", got)
 			}
 		})
@@ -87,7 +87,7 @@ func TestPackageProfiles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.fixture, func(t *testing.T) {
 			got := assessFixture(t, assessor, tt.fixture)
-			if got.Reconciliation != tt.wantReconciliation || got.Availability != tt.wantAvailability {
+			if got.Reconciliation.Status != tt.wantReconciliation || got.Availability.Status != tt.wantAvailability {
 				t.Fatalf("assessment = %#v", got)
 			}
 		})
@@ -103,7 +103,7 @@ func TestAllCurrentPackageKindsAreRegistered(t *testing.T) {
 				condition("Healthy", "True", "HealthyPackageRevision", ""),
 			})
 			got := assess(t, assessor, obj)
-			if got.Reconciliation != kubehealth.ReconciliationReconciled || got.Availability != kubehealth.AvailabilityAvailable {
+			if got.Reconciliation.Status != kubehealth.ReconciliationReconciled || got.Availability.Status != kubehealth.AvailabilityAvailable {
 				t.Fatalf("assessment = %#v", got)
 			}
 		})
@@ -118,7 +118,7 @@ func TestAllCurrentPackageRevisionKindsAreRegistered(t *testing.T) {
 				condition("RevisionHealthy", "True", "HealthyPackageRevision", ""),
 			})
 			got := assess(t, assessor, obj)
-			if got.Reconciliation != kubehealth.ReconciliationReconciled || got.Availability != kubehealth.AvailabilityAvailable {
+			if got.Reconciliation.Status != kubehealth.ReconciliationReconciled || got.Availability.Status != kubehealth.AvailabilityAvailable {
 				t.Fatalf("assessment = %#v", got)
 			}
 		})
@@ -140,14 +140,14 @@ func TestCoreProfiles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.fixture, func(t *testing.T) {
 			got := assessFixture(t, assessor, tt.fixture)
-			if got.Reconciliation != tt.wantReconciliation || got.Availability != tt.wantAvailability {
+			if got.Reconciliation.Status != tt.wantReconciliation || got.Availability.Status != tt.wantAvailability {
 				t.Fatalf("assessment = %#v", got)
 			}
 		})
 	}
 
 	deploymentRuntimeConfig := resource(schema.GroupVersionKind{Group: "pkg.crossplane.io", Version: "v1beta1", Kind: "DeploymentRuntimeConfig"}, nil)
-	if got := assess(t, assessor, deploymentRuntimeConfig); got.Reconciliation != kubehealth.ReconciliationNotApplicable || got.Availability != kubehealth.AvailabilityNotApplicable {
+	if got := assess(t, assessor, deploymentRuntimeConfig); got.Reconciliation.Status != kubehealth.ReconciliationNotApplicable || got.Availability.Status != kubehealth.AvailabilityNotApplicable {
 		t.Fatalf("DeploymentRuntimeConfig assessment = %#v", got)
 	}
 }
@@ -159,18 +159,18 @@ func TestExactRegistration(t *testing.T) {
 		condition("Installed", "True", "ActivePackageRevision", ""),
 		condition("Healthy", "True", "HealthyPackageRevision", ""),
 	})
-	if got := assess(t, assessor, current); got.Reconciliation != kubehealth.ReconciliationReconciled {
+	if got := assess(t, assessor, current); got.Reconciliation.Status != kubehealth.ReconciliationReconciled {
 		t.Fatalf("current Function assessment = %#v", got)
 	}
 
 	historical := current.DeepCopy()
 	historical.SetAPIVersion("pkg.crossplane.io/v1beta1")
-	if got := assess(t, assessor, historical); got.Reconciliation != kubehealth.ReconciliationUnknown {
+	if got := assess(t, assessor, historical); got.Reconciliation.Status != kubehealth.ReconciliationUnknown {
 		t.Fatalf("unregistered historical Function assessment = %#v", got)
 	}
 
 	xrdV1 := resource(schema.GroupVersionKind{Group: "apiextensions.crossplane.io", Version: "v1", Kind: "CompositeResourceDefinition"}, nil)
-	if got := assess(t, assessor, xrdV1); got.Reconciliation != kubehealth.ReconciliationUnknown {
+	if got := assess(t, assessor, xrdV1); got.Reconciliation.Status != kubehealth.ReconciliationUnknown {
 		t.Fatalf("unregistered v1 XRD assessment = %#v", got)
 	}
 }
@@ -182,7 +182,7 @@ func TestExplicitRegistrationValidationIsAtomic(t *testing.T) {
 	if err := crossplane.RegisterManagedResources(assessor, valid, invalid); err == nil {
 		t.Fatal("RegisterManagedResources() error = nil")
 	}
-	if got := assess(t, assessor, resource(valid, nil)); got.Reconciliation != kubehealth.ReconciliationUnknown {
+	if got := assess(t, assessor, resource(valid, nil)); got.Reconciliation.Status != kubehealth.ReconciliationUnknown {
 		t.Fatalf("valid GVK was partially registered: %#v", got)
 	}
 	if err := crossplane.RegisterManagedResources(nil, valid); err == nil {
@@ -208,11 +208,8 @@ func TestManagedResourceStandardPrecedenceAndConditions(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := assess(t, assessor, obj)
-	if got.Reconciliation != kubehealth.ReconciliationInProgress || got.Availability != kubehealth.AvailabilityAvailable {
+	if got.Reconciliation.Status != kubehealth.ReconciliationInProgress || got.Availability.Status != kubehealth.AvailabilityAvailable {
 		t.Fatalf("assessment = %#v", got)
-	}
-	if len(got.Conditions) != 3 {
-		t.Fatalf("conditions = %#v, want synthetic standard condition plus two resource conditions", got.Conditions)
 	}
 }
 
@@ -230,7 +227,7 @@ func TestManagedResourceTerminationPreservesAvailability(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := assess(t, assessor, obj)
-	if got.Lifecycle != kubehealth.LifecycleTerminating || got.Availability != kubehealth.AvailabilityAvailable {
+	if got.Lifecycle.Status != kubehealth.LifecycleTerminating || got.Availability.Status != kubehealth.AvailabilityAvailable {
 		t.Fatalf("assessment = %#v", got)
 	}
 }
@@ -247,7 +244,7 @@ func TestMalformedConditionsReturnError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Assess() error = nil")
 	}
-	if got.Reconciliation != kubehealth.ReconciliationUnknown || got.Availability != kubehealth.AvailabilityUnknown || got.Lifecycle != kubehealth.LifecycleUnknown {
+	if got.Reconciliation.Status != kubehealth.ReconciliationUnknown || got.Availability.Status != kubehealth.AvailabilityUnknown || got.Lifecycle.Status != kubehealth.LifecycleUnknown {
 		t.Fatalf("assessment = %#v", got)
 	}
 }

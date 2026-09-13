@@ -43,7 +43,7 @@ func TestCatalogRegistersIntegrations(t *testing.T) {
 			t.Errorf("Assess(%s): %v", obj.GroupVersionKind(), err)
 			continue
 		}
-		if got.Reconciliation == kubehealth.ReconciliationUnknown {
+		if got.Reconciliation.Status == kubehealth.ReconciliationUnknown {
 			t.Errorf("%s was not registered", obj.GroupVersionKind())
 		}
 	}

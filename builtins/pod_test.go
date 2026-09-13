@@ -48,11 +48,11 @@ func TestPod(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if assessment.Reconciliation != test.wantReconciliation || assessment.Availability != test.wantAvailability {
+			if assessment.Reconciliation.Status != test.wantReconciliation || assessment.Availability.Status != test.wantAvailability {
 				t.Fatalf("assessment = %#v", assessment)
 			}
-			if test.wantMessage != "" && assessment.ReconciliationMessage != test.wantMessage {
-				t.Fatalf("message = %q, want %q", assessment.ReconciliationMessage, test.wantMessage)
+			if test.wantMessage != "" && assessment.Reconciliation.Message != test.wantMessage {
+				t.Fatalf("message = %q, want %q", assessment.Reconciliation.Message, test.wantMessage)
 			}
 		})
 	}

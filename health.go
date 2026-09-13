@@ -46,10 +46,13 @@ const (
 // Assessment contains three independent health dimensions and their explanations.
 type Assessment = api.Assessment
 
+type Dimension[T ~string] = api.Dimension[T]
+
 // Check computes status from resource-specific fields.
 type Check = api.Check
 
-// Assessor evaluates standard status signals before resource-specific checks.
+// Assessor evaluates operator-published health, generic status signals, and
+// resource-specific checks in that order.
 type Assessor struct {
 	mu     sync.RWMutex
 	checks map[schema.GroupVersionKind]Check
@@ -85,9 +88,10 @@ func (a *Assessor) Register(gvk schema.GroupVersionKind, check Check) error {
 	return nil
 }
 
-// Assess honors generic lifecycle and reconciliation signals exposed by the
-// resource. A resource-specific check supplies availability and supplies
-// reconciliation when generic signals do not decide it.
+// Assess returns a complete, current status.kubeHealth report before running
+// generic or resource-specific checks. Otherwise, it honors generic lifecycle
+// and reconciliation signals. A resource-specific check supplies availability
+// and supplies reconciliation when generic signals do not decide it.
 func (a *Assessor) Assess(obj *unstructured.Unstructured) (Assessment, error) {
 	if obj == nil {
 		return Assessment{}, fmt.Errorf("resource must not be nil")
@@ -96,9 +100,25 @@ func (a *Assessor) Assess(obj *unstructured.Unstructured) (Assessment, error) {
 		return Assessment{}, fmt.Errorf("resource GVK must not be empty")
 	}
 
+	published, publishedState, err := readPublishedStatus(obj)
+	if err != nil {
+		return unknownResult(err), err
+	}
+	if publishedState == publishedStatusCurrent {
+		return published, nil
+	}
+
 	standard, decided, err := assessStandardStatus(obj)
 	if err != nil {
 		return unknownResult(err), err
+	}
+	if publishedState == publishedStatusStale {
+		if obj.GetDeletionTimestamp() == nil {
+			standard = published
+			decided = true
+		} else {
+			standard.Availability = published.Availability
+		}
 	}
 
 	a.mu.RLock()
@@ -106,14 +126,15 @@ func (a *Assessor) Assess(obj *unstructured.Unstructured) (Assessment, error) {
 	a.mu.RUnlock()
 	if check == nil {
 		if decided {
-			standard.Availability = AvailabilityUnknown
+			if standard.Availability.Status == "" {
+				standard.Availability.Status = AvailabilityUnknown
+			}
 			return standard, nil
 		}
 		return Assessment{
-			Reconciliation:        ReconciliationUnknown,
-			Availability:          AvailabilityUnknown,
-			Lifecycle:             LifecycleActive,
-			ReconciliationMessage: fmt.Sprintf("No health check registered for %s", obj.GroupVersionKind()),
+			Reconciliation: Dimension[ReconciliationStatus]{Status: ReconciliationUnknown, Message: fmt.Sprintf("No health check registered for %s", obj.GroupVersionKind())},
+			Availability:   Dimension[AvailabilityStatus]{Status: AvailabilityUnknown},
+			Lifecycle:      Dimension[LifecycleStatus]{Status: LifecycleActive},
 		}, nil
 	}
 
@@ -123,27 +144,25 @@ func (a *Assessor) Assess(obj *unstructured.Unstructured) (Assessment, error) {
 	}
 	if decided {
 		result.Reconciliation = standard.Reconciliation
-		result.ReconciliationMessage = standard.ReconciliationMessage
 		result.Lifecycle = standard.Lifecycle
-		result.LifecycleMessage = standard.LifecycleMessage
-		result.Conditions = append(standard.Conditions, result.Conditions...)
 	}
-	if result.Reconciliation == "" {
+	if result.Reconciliation.Status == "" {
 		err = fmt.Errorf("health check for %s returned an empty status", obj.GroupVersionKind())
 		return unknownResult(err), err
 	}
-	if result.Availability == "" {
-		result.Availability = AvailabilityUnknown
+	if result.Availability.Status == "" {
+		result.Availability.Status = AvailabilityUnknown
 	}
-	if result.Lifecycle == "" {
-		result.Lifecycle = LifecycleActive
+	if result.Lifecycle.Status == "" {
+		result.Lifecycle.Status = LifecycleActive
 	}
 	return result, nil
 }
 
 func unknownResult(err error) Assessment {
 	return Assessment{
-		Reconciliation: ReconciliationUnknown, Availability: AvailabilityUnknown,
-		Lifecycle: LifecycleUnknown, ReconciliationMessage: err.Error(),
+		Reconciliation: Dimension[ReconciliationStatus]{Status: ReconciliationUnknown, Message: err.Error()},
+		Availability:   Dimension[AvailabilityStatus]{Status: AvailabilityUnknown},
+		Lifecycle:      Dimension[LifecycleStatus]{Status: LifecycleUnknown},
 	}
 }

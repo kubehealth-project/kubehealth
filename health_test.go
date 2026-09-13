@@ -21,16 +21,16 @@ func TestStandardStatusTakesPrecedence(t *testing.T) {
 	})
 
 	got := assess(t, deployment)
-	if got.Reconciliation != kubehealth.ReconciliationFailed {
+	if got.Reconciliation.Status != kubehealth.ReconciliationFailed {
 		t.Fatalf("status = %q, want %q", got.Reconciliation, kubehealth.ReconciliationFailed)
 	}
-	if got.ReconciliationMessage != "dependency is permanently broken" {
-		t.Fatalf("message = %q", got.ReconciliationMessage)
+	if got.Reconciliation.Message != "dependency is permanently broken" {
+		t.Fatalf("message = %q", got.Reconciliation.Message)
 	}
-	if len(got.Conditions) != 1 || got.Conditions[0].Type != "Stalled" {
-		t.Fatalf("conditions = %#v", got.Conditions)
+	if got.Reconciliation.Reason != "BrokenDependency" {
+		t.Fatalf("reason = %q", got.Reconciliation.Reason)
 	}
-	if got.Availability != kubehealth.AvailabilityAvailable {
+	if got.Availability.Status != kubehealth.AvailabilityAvailable {
 		t.Fatalf("availability = %q, want %q", got.Availability, kubehealth.AvailabilityAvailable)
 	}
 }
@@ -48,10 +48,10 @@ func TestFailedDeploymentCanRemainAvailable(t *testing.T) {
 	}}
 
 	got := assess(t, deployment)
-	if got.Reconciliation != kubehealth.ReconciliationFailed {
+	if got.Reconciliation.Status != kubehealth.ReconciliationFailed {
 		t.Fatalf("status = %q, want %q", got.Reconciliation, kubehealth.ReconciliationFailed)
 	}
-	if got.Availability != kubehealth.AvailabilityAvailable {
+	if got.Availability.Status != kubehealth.AvailabilityAvailable {
 		t.Fatalf("availability = %q, want %q", got.Availability, kubehealth.AvailabilityAvailable)
 	}
 }
@@ -66,10 +66,10 @@ func TestFailedDeploymentCanBeUnavailable(t *testing.T) {
 	}}
 
 	got := assess(t, deployment)
-	if got.Reconciliation != kubehealth.ReconciliationFailed {
+	if got.Reconciliation.Status != kubehealth.ReconciliationFailed {
 		t.Fatalf("status = %q, want %q", got.Reconciliation, kubehealth.ReconciliationFailed)
 	}
-	if got.Availability != kubehealth.AvailabilityUnavailable {
+	if got.Availability.Status != kubehealth.AvailabilityUnavailable {
 		t.Fatalf("availability = %q, want %q", got.Availability, kubehealth.AvailabilityUnavailable)
 	}
 }
@@ -81,13 +81,13 @@ func TestCustomCheckRunsWhenStandardStatusIsAbsent(t *testing.T) {
 	deployment.Status.Conditions = nil
 
 	got := assess(t, deployment)
-	if got.Reconciliation != kubehealth.ReconciliationInProgress {
+	if got.Reconciliation.Status != kubehealth.ReconciliationInProgress {
 		t.Fatalf("status = %q, want %q", got.Reconciliation, kubehealth.ReconciliationInProgress)
 	}
-	if got.ReconciliationMessage != "Updated: 0/1" {
-		t.Fatalf("message = %q", got.ReconciliationMessage)
+	if got.Reconciliation.Message != "Updated: 0/1" {
+		t.Fatalf("message = %q", got.Reconciliation.Message)
 	}
-	if got.Availability != kubehealth.AvailabilityUnavailable {
+	if got.Availability.Status != kubehealth.AvailabilityUnavailable {
 		t.Fatalf("availability = %q, want %q", got.Availability, kubehealth.AvailabilityUnavailable)
 	}
 }
@@ -108,10 +108,10 @@ func TestResourceCheckInterpretsReadyCondition(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Reconciliation != kubehealth.ReconciliationInProgress || got.ReconciliationMessage != "Waiting for load balancer ingress" {
+	if got.Reconciliation.Status != kubehealth.ReconciliationInProgress || got.Reconciliation.Message != "Waiting for load balancer ingress" {
 		t.Fatalf("result = %#v", got)
 	}
-	if got.Availability != kubehealth.AvailabilityUnavailable {
+	if got.Availability.Status != kubehealth.AvailabilityUnavailable {
 		t.Fatalf("availability = %q, want %q", got.Availability, kubehealth.AvailabilityUnavailable)
 	}
 }
@@ -122,14 +122,14 @@ func TestObservedGenerationTakesPrecedence(t *testing.T) {
 	deployment.Status.ObservedGeneration = 1
 
 	got := assess(t, deployment)
-	if got.Reconciliation != kubehealth.ReconciliationInProgress {
+	if got.Reconciliation.Status != kubehealth.ReconciliationInProgress {
 		t.Fatalf("status = %q, want %q", got.Reconciliation, kubehealth.ReconciliationInProgress)
 	}
-	if got.Availability != kubehealth.AvailabilityAvailable {
+	if got.Availability.Status != kubehealth.AvailabilityAvailable {
 		t.Fatalf("availability = %q, want %q", got.Availability, kubehealth.AvailabilityAvailable)
 	}
-	if len(got.Conditions) != 1 || got.Conditions[0].Reason != "LatestGenerationNotObserved" {
-		t.Fatalf("conditions = %#v", got.Conditions)
+	if got.Reconciliation.Reason != "LatestGenerationNotObserved" {
+		t.Fatalf("reason = %q", got.Reconciliation.Reason)
 	}
 }
 
@@ -139,17 +139,17 @@ func TestDeletionUsesLifecycleDimension(t *testing.T) {
 	deployment.DeletionTimestamp = &now
 
 	got := assess(t, deployment)
-	if got.Lifecycle != kubehealth.LifecycleTerminating {
+	if got.Lifecycle.Status != kubehealth.LifecycleTerminating {
 		t.Fatalf("lifecycle = %q, want %q", got.Lifecycle, kubehealth.LifecycleTerminating)
 	}
-	if got.Reconciliation != kubehealth.ReconciliationUnknown {
+	if got.Reconciliation.Status != kubehealth.ReconciliationUnknown {
 		t.Fatalf("reconciliation = %q, want %q", got.Reconciliation, kubehealth.ReconciliationUnknown)
 	}
-	if got.Availability != kubehealth.AvailabilityAvailable {
+	if got.Availability.Status != kubehealth.AvailabilityAvailable {
 		t.Fatalf("availability = %q, want %q", got.Availability, kubehealth.AvailabilityAvailable)
 	}
-	if got.LifecycleMessage != "Resource scheduled for deletion" {
-		t.Fatalf("lifecycle message = %q", got.LifecycleMessage)
+	if got.Lifecycle.Message != "Resource scheduled for deletion" {
+		t.Fatalf("lifecycle message = %q", got.Lifecycle.Message)
 	}
 }
 
@@ -159,9 +159,9 @@ func TestRegisterCustomResourceCheck(t *testing.T) {
 	if err := assessor.Register(gvk, func(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 		state, _, _ := unstructured.NestedString(obj.Object, "status", "state")
 		if state == "Active" {
-			return kubehealth.Assessment{Reconciliation: kubehealth.ReconciliationReconciled, Availability: kubehealth.AvailabilityNotApplicable, Lifecycle: kubehealth.LifecycleActive, ReconciliationMessage: "CleanupPolicy is active"}, nil
+			return kubehealth.Assessment{Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: kubehealth.ReconciliationReconciled, Message: "CleanupPolicy is active"}, Availability: kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: kubehealth.AvailabilityNotApplicable}, Lifecycle: kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive}}, nil
 		}
-		return kubehealth.Assessment{Reconciliation: kubehealth.ReconciliationInProgress, Availability: kubehealth.AvailabilityNotApplicable, Lifecycle: kubehealth.LifecycleActive, ReconciliationMessage: "CleanupPolicy is becoming active"}, nil
+		return kubehealth.Assessment{Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: kubehealth.ReconciliationInProgress, Message: "CleanupPolicy is becoming active"}, Availability: kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: kubehealth.AvailabilityNotApplicable}, Lifecycle: kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive}}, nil
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestRegisterCustomResourceCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Reconciliation != kubehealth.ReconciliationReconciled {
+	if got.Reconciliation.Status != kubehealth.ReconciliationReconciled {
 		t.Fatalf("status = %q, want %q", got.Reconciliation, kubehealth.ReconciliationReconciled)
 	}
 }
@@ -190,17 +190,17 @@ func TestUnknownResourceDoesNotDefaultToCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Reconciliation != kubehealth.ReconciliationUnknown {
+	if got.Reconciliation.Status != kubehealth.ReconciliationUnknown {
 		t.Fatalf("status = %q, want %q", got.Reconciliation, kubehealth.ReconciliationUnknown)
 	}
-	if got.Availability != kubehealth.AvailabilityUnknown {
+	if got.Availability.Status != kubehealth.AvailabilityUnknown {
 		t.Fatalf("availability = %q, want %q", got.Availability, kubehealth.AvailabilityUnknown)
 	}
 }
 
 func TestStaticResourcesAreCurrent(t *testing.T) {
 	configMap := &corev1.ConfigMap{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"}}
-	if got := assess(t, configMap); got.Reconciliation != kubehealth.ReconciliationReconciled {
+	if got := assess(t, configMap); got.Reconciliation.Status != kubehealth.ReconciliationReconciled {
 		t.Fatalf("status = %q, want %q", got.Reconciliation, kubehealth.ReconciliationReconciled)
 	}
 }

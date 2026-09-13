@@ -18,34 +18,34 @@ func gatewayClass(obj *unstructured.Unstructured) (kubehealth.Assessment, error)
 	}
 	accepted := findCondition(conditions, "Accepted")
 	result := kubehealth.Assessment{
-		Reconciliation: kubehealth.ReconciliationInProgress, Availability: kubehealth.AvailabilityUnknown,
-		Lifecycle: kubehealth.LifecycleActive, ReconciliationMessage: "Waiting for GatewayClass status",
-		AvailabilityMessage: "GatewayClass availability is not reported", Conditions: publicConditions(conditions, ""),
+		Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: kubehealth.ReconciliationInProgress, Message: "Waiting for GatewayClass status"},
+		Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: kubehealth.AvailabilityUnknown, Message: "GatewayClass availability is not reported"},
+		Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive},
 	}
 	if accepted == nil {
 		return result, nil
 	}
 	if isStale(accepted, obj.GetGeneration()) {
-		result.ReconciliationMessage = "Waiting for GatewayClass to observe the latest generation"
+		result.Reconciliation.Message = "Waiting for GatewayClass to observe the latest generation"
 		if accepted.Status == corev1.ConditionTrue {
-			result.Availability = kubehealth.AvailabilityAvailable
-			result.AvailabilityMessage = "The previously observed GatewayClass configuration is accepted"
+			result.Availability.Status = kubehealth.AvailabilityAvailable
+			result.Availability.Message = "The previously observed GatewayClass configuration is accepted"
 		}
 		return result, nil
 	}
 	switch accepted.Status {
 	case corev1.ConditionTrue:
-		result.Reconciliation = kubehealth.ReconciliationReconciled
-		result.Availability = kubehealth.AvailabilityAvailable
-		result.ReconciliationMessage = conditionMessage(accepted, "GatewayClass is accepted")
-		result.AvailabilityMessage = "GatewayClass is available for provisioning Gateways"
+		result.Reconciliation.Status = kubehealth.ReconciliationReconciled
+		result.Availability.Status = kubehealth.AvailabilityAvailable
+		result.Reconciliation.Message = conditionMessage(accepted, "GatewayClass is accepted")
+		result.Availability.Message = "GatewayClass is available for provisioning Gateways"
 	case corev1.ConditionFalse:
-		result.Reconciliation = kubehealth.ReconciliationFailed
-		result.Availability = kubehealth.AvailabilityUnavailable
-		result.ReconciliationMessage = conditionMessage(accepted, "GatewayClass is not accepted")
-		result.AvailabilityMessage = "GatewayClass is not available for provisioning Gateways"
+		result.Reconciliation.Status = kubehealth.ReconciliationFailed
+		result.Availability.Status = kubehealth.AvailabilityUnavailable
+		result.Reconciliation.Message = conditionMessage(accepted, "GatewayClass is not accepted")
+		result.Availability.Message = "GatewayClass is not available for provisioning Gateways"
 	default:
-		result.ReconciliationMessage = conditionMessage(accepted, "Waiting for GatewayClass acceptance")
+		result.Reconciliation.Message = conditionMessage(accepted, "Waiting for GatewayClass acceptance")
 	}
 	return result, nil
 }

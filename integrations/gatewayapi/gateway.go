@@ -64,8 +64,9 @@ func gateway(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 	}
 	_, availability, _, availabilityMessage := aggregateAttachments(availabilityItems)
 	return kubehealth.Assessment{
-		Reconciliation: reconciliation, Availability: availability, Lifecycle: kubehealth.LifecycleActive,
-		ReconciliationMessage: reconciliationMessage, AvailabilityMessage: availabilityMessage, Conditions: reported,
+		Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: reconciliation, Message: reconciliationMessage},
+		Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
+		Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive},
 	}, nil
 }
 

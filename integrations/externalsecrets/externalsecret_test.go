@@ -51,9 +51,6 @@ func TestExternalSecretFailedRefreshDoesNotAssumePriorTargetAvailable(t *testing
 		t.Fatal(err)
 	}
 	assertAssessment(t, got, kubehealth.ReconciliationFailed, kubehealth.AvailabilityUnknown)
-	if len(got.Conditions) != 1 || got.Conditions[0].Reason != "SecretSyncedError" || got.Conditions[0].Message != "refresh failed" {
-		t.Fatalf("conditions = %#v, want preserved Ready condition", got.Conditions)
-	}
 }
 
 func TestExternalSecretTerminatingPreservesAvailability(t *testing.T) {
@@ -63,7 +60,7 @@ func TestExternalSecretTerminatingPreservesAvailability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Reconciliation != kubehealth.ReconciliationUnknown || got.Availability != kubehealth.AvailabilityAvailable || got.Lifecycle != kubehealth.LifecycleTerminating {
+	if got.Reconciliation.Status != kubehealth.ReconciliationUnknown || got.Availability.Status != kubehealth.AvailabilityAvailable || got.Lifecycle.Status != kubehealth.LifecycleTerminating {
 		t.Fatalf("assessment = %#v", got)
 	}
 }

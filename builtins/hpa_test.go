@@ -32,10 +32,10 @@ func TestHPA(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if assessment.Reconciliation != test.want {
+			if assessment.Reconciliation.Status != test.want {
 				t.Fatalf("reconciliation = %q, want %q", assessment.Reconciliation, test.want)
 			}
-			if assessment.Availability != kubehealth.AvailabilityNotApplicable {
+			if assessment.Availability.Status != kubehealth.AvailabilityNotApplicable {
 				t.Fatalf("availability = %q, want %q", assessment.Availability, kubehealth.AvailabilityNotApplicable)
 			}
 		})

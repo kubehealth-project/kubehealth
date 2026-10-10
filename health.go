@@ -33,14 +33,15 @@ const (
 	AvailabilityUnknown            = api.AvailabilityUnknown
 )
 
-// LifecycleStatus describes whether a resource is active, terminating, or absent.
+// LifecycleStatus describes whether a resource is initializing, active, terminating, or absent.
 type LifecycleStatus = api.LifecycleStatus
 
 const (
-	LifecycleActive      = api.LifecycleActive
-	LifecycleTerminating = api.LifecycleTerminating
-	LifecycleNotFound    = api.LifecycleNotFound
-	LifecycleUnknown     = api.LifecycleUnknown
+	LifecycleInitializing = api.LifecycleInitializing
+	LifecycleActive       = api.LifecycleActive
+	LifecycleTerminating  = api.LifecycleTerminating
+	LifecycleNotFound     = api.LifecycleNotFound
+	LifecycleUnknown      = api.LifecycleUnknown
 )
 
 // Assessment contains three independent health dimensions and their explanations.

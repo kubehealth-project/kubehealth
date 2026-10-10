@@ -10,7 +10,7 @@ The library answers three independent questions:
 
 1. Has the resource reconciled to its latest desired state?
 2. Is the resource operational right now?
-3. Is the resource active, terminating, or absent?
+3. Is the resource initializing, active, terminating, or absent?
 
 The canonical result is:
 
@@ -58,8 +58,9 @@ current certificate remains valid.
 
 ## Lifecycle
 
-Lifecycle answers whether the resource exists and whether it is being deleted:
+Lifecycle answers whether the resource is initializing, exists, or is being deleted:
 
+- `Initializing`
 - `Active`
 - `Terminating`
 - `NotFound`

@@ -39,14 +39,15 @@ const (
 	AvailabilityUnknown            AvailabilityStatus = "Unknown"
 )
 
-// LifecycleStatus describes whether a resource is active, terminating, or absent.
+// LifecycleStatus describes whether a resource is initializing, active, terminating, or absent.
 type LifecycleStatus string
 
 const (
-	LifecycleActive      LifecycleStatus = "Active"
-	LifecycleTerminating LifecycleStatus = "Terminating"
-	LifecycleNotFound    LifecycleStatus = "NotFound"
-	LifecycleUnknown     LifecycleStatus = "Unknown"
+	LifecycleInitializing LifecycleStatus = "Initializing"
+	LifecycleActive       LifecycleStatus = "Active"
+	LifecycleTerminating  LifecycleStatus = "Terminating"
+	LifecycleNotFound     LifecycleStatus = "NotFound"
+	LifecycleUnknown      LifecycleStatus = "Unknown"
 )
 
 // Dimension contains a health value and the metadata explaining that value.

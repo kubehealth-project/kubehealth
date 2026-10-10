@@ -17,6 +17,8 @@ func Assess(obj *unstructured.Unstructured) (*status.Result, error) {
 // Project converts a KubeHealth assessment into one kstatus result.
 func Project(assessment kubehealth.Assessment) *status.Result {
 	switch assessment.Lifecycle.Status {
+	case kubehealth.LifecycleInitializing:
+		return result(assessment, status.InProgressStatus, assessment.Lifecycle.Message)
 	case kubehealth.LifecycleTerminating:
 		return result(assessment, status.TerminatingStatus, assessment.Lifecycle.Message)
 	case kubehealth.LifecycleNotFound:

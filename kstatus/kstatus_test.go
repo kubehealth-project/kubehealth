@@ -18,6 +18,7 @@ func TestProject(t *testing.T) {
 		{name: "in progress", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleActive, Reconciliation: kubehealth.ReconciliationInProgress}, want: status.InProgressStatus},
 		{name: "failed", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleActive, Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: kubehealth.ReconciliationFailed}}, want: status.FailedStatus},
 		{name: "suspended", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleActive, Reconciliation: kubehealth.ReconciliationSuspended}, want: status.InProgressStatus},
+		{name: "initializing", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleInitializing}, want: status.InProgressStatus},
 		{name: "terminating", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleTerminating}, want: status.TerminatingStatus},
 		{name: "not found", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleNotFound}, want: status.NotFoundStatus},
 	}

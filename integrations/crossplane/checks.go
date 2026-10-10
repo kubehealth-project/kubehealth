@@ -20,7 +20,11 @@ func managedResourceCheck(obj *unstructured.Unstructured) (kubehealth.Assessment
 
 	reconciliation, reconciliationMessage := managedReconciliation(synced, lastAsync)
 	availability, availabilityMessage := conditionAvailability(ready, obj.GetKind())
-	return assessment(reconciliation, availability, reconciliationMessage, availabilityMessage, conditions), nil
+	lifecycle := kubehealth.LifecycleActive
+	if ready != nil && ready.Status == corev1.ConditionFalse && ready.Reason == "Creating" {
+		lifecycle = kubehealth.LifecycleInitializing
+	}
+	return assessment(reconciliation, availability, reconciliationMessage, availabilityMessage, lifecycle), nil
 }
 
 func managedReconciliation(synced, lastAsync *kubehealth.Condition) (kubehealth.ReconciliationStatus, string) {
@@ -67,7 +71,7 @@ func packageCheck(obj *unstructured.Unstructured) (kubehealth.Assessment, error)
 	}
 
 	availability, availabilityMessage := conditionAvailability(healthy, "Package")
-	return assessment(reconciliation, availability, reconciliationMessage, availabilityMessage, conditions), nil
+	return assessment(reconciliation, availability, reconciliationMessage, availabilityMessage, kubehealth.LifecycleActive), nil
 }
 
 func packageRevisionCheck(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
@@ -81,7 +85,7 @@ func packageRevisionCheck(obj *unstructured.Unstructured) (kubehealth.Assessment
 			kubehealth.AvailabilityNotApplicable,
 			"Package revision is intentionally inactive",
 			"An inactive package revision is not expected to serve",
-			conditions,
+			kubehealth.LifecycleActive,
 		), nil
 	}
 
@@ -102,11 +106,15 @@ func packageRevisionCheck(obj *unstructured.Unstructured) (kubehealth.Assessment
 		}
 	}
 	availability, availabilityMessage := conditionAvailability(availabilityCondition, capability)
-	return assessment(reconciliation, availability, reconciliationMessage, availabilityMessage, conditions), nil
+	lifecycle := kubehealth.LifecycleActive
+	if runtimeActive := findCondition(conditions, "RuntimeActive"); runtimeActive != nil && runtimeActive.Status == corev1.ConditionFalse && runtimeActive.Reason == "AwaitingActivation" {
+		lifecycle = kubehealth.LifecycleInitializing
+	}
+	return assessment(reconciliation, availability, reconciliationMessage, availabilityMessage, lifecycle), nil
 }
 
 func declarativeCheck(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
-	conditions, err := kubehealth.GetConditions(obj)
+	_, err := kubehealth.GetConditions(obj)
 	if err != nil {
 		return kubehealth.Assessment{}, err
 	}
@@ -115,7 +123,7 @@ func declarativeCheck(obj *unstructured.Unstructured) (kubehealth.Assessment, er
 		kubehealth.AvailabilityNotApplicable,
 		fmt.Sprintf("%s is declarative configuration", obj.GetKind()),
 		fmt.Sprintf("%s does not report an object-local serving capability", obj.GetKind()),
-		conditions,
+		kubehealth.LifecycleActive,
 	), nil
 }
 
@@ -135,7 +143,7 @@ func compositionRevisionCheck(obj *unstructured.Unstructured) (kubehealth.Assess
 		kubehealth.AvailabilityNotApplicable,
 		message,
 		"A composition revision does not serve independently",
-		conditions,
+		kubehealth.LifecycleActive,
 	), nil
 }
 
@@ -151,7 +159,7 @@ func xrdCheck(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 			kubehealth.AvailabilityUnknown,
 			"Waiting for the composite resource API to be established",
 			"Composite resource API availability is not reported",
-			conditions,
+			kubehealth.LifecycleActive,
 		), nil
 	}
 	switch established.Status {
@@ -161,7 +169,7 @@ func xrdCheck(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 			kubehealth.AvailabilityAvailable,
 			conditionMessage(established, "Composite resource API is established"),
 			"Composite resource API is established",
-			conditions,
+			kubehealth.LifecycleActive,
 		), nil
 	case corev1.ConditionFalse:
 		return assessment(
@@ -169,7 +177,7 @@ func xrdCheck(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 			kubehealth.AvailabilityUnavailable,
 			conditionMessage(established, "Composite resource API is not established"),
 			"Composite resource API is not established",
-			conditions,
+			kubehealth.LifecycleActive,
 		), nil
 	default:
 		return assessment(
@@ -177,7 +185,7 @@ func xrdCheck(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
 			kubehealth.AvailabilityUnknown,
 			conditionMessage(established, "Composite resource API establishment is unknown"),
 			"Composite resource API availability is unknown",
-			conditions,
+			kubehealth.LifecycleActive,
 		), nil
 	}
 }
@@ -220,11 +228,11 @@ func conditionMessage(condition *kubehealth.Condition, fallback string) string {
 	return fallback
 }
 
-func assessment(reconciliation kubehealth.ReconciliationStatus, availability kubehealth.AvailabilityStatus, reconciliationMessage, availabilityMessage string, conditions []kubehealth.Condition) kubehealth.Assessment {
+func assessment(reconciliation kubehealth.ReconciliationStatus, availability kubehealth.AvailabilityStatus, reconciliationMessage, availabilityMessage string, lifecycle kubehealth.LifecycleStatus) kubehealth.Assessment {
 	return kubehealth.Assessment{
 		Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: reconciliation, Message: reconciliationMessage},
 		Availability:   kubehealth.Dimension[kubehealth.AvailabilityStatus]{Status: availability, Message: availabilityMessage},
-		Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: kubehealth.LifecycleActive},
+		Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: lifecycle},
 	}
 }
 

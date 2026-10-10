@@ -69,6 +69,14 @@ func TestStatusAssessment(t *testing.T) {
 	}
 }
 
+func TestStatusValidateAcceptsInitializingLifecycle(t *testing.T) {
+	status := validStatus()
+	status.Lifecycle.Status = api.LifecycleInitializing
+	if err := status.Validate(); err != nil {
+		t.Fatalf("initializing lifecycle: %v", err)
+	}
+}
+
 func TestStatusDeepCopyDoesNotShareTransitionTimes(t *testing.T) {
 	status := validStatus()
 	now := metav1.Now()

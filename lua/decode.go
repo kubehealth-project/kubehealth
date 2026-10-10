@@ -77,7 +77,7 @@ func validateAssessment(assessment api.Assessment) error {
 	}
 
 	switch assessment.Lifecycle.Status {
-	case api.LifecycleActive, api.LifecycleTerminating,
+	case api.LifecycleInitializing, api.LifecycleActive, api.LifecycleTerminating,
 		api.LifecycleNotFound, api.LifecycleUnknown:
 	default:
 		return fmt.Errorf("Lua health check returned invalid lifecycle value %q", assessment.Lifecycle.Status)

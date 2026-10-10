@@ -22,11 +22,12 @@ func TestManagedResourceProfile(t *testing.T) {
 		fixture            string
 		wantReconciliation kubehealth.ReconciliationStatus
 		wantAvailability   kubehealth.AvailabilityStatus
+		wantLifecycle      kubehealth.LifecycleStatus
 	}{
-		{"managed-healthy.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityAvailable},
-		{"managed-failed-update.yaml", kubehealth.ReconciliationFailed, kubehealth.AvailabilityAvailable},
-		{"managed-creating.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityUnavailable},
-		{"managed-paused-available.yaml", kubehealth.ReconciliationSuspended, kubehealth.AvailabilityAvailable},
+		{"managed-healthy.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityAvailable, kubehealth.LifecycleActive},
+		{"managed-failed-update.yaml", kubehealth.ReconciliationFailed, kubehealth.AvailabilityAvailable, kubehealth.LifecycleActive},
+		{"managed-creating.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityUnavailable, kubehealth.LifecycleInitializing},
+		{"managed-paused-available.yaml", kubehealth.ReconciliationSuspended, kubehealth.AvailabilityAvailable, kubehealth.LifecycleActive},
 	}
 	for _, tt := range tests {
 		t.Run(tt.fixture, func(t *testing.T) {
@@ -34,8 +35,8 @@ func TestManagedResourceProfile(t *testing.T) {
 			if got.Reconciliation.Status != tt.wantReconciliation || got.Availability.Status != tt.wantAvailability {
 				t.Fatalf("assessment = %#v, want reconciliation %q and availability %q", got, tt.wantReconciliation, tt.wantAvailability)
 			}
-			if got.Lifecycle.Status != kubehealth.LifecycleActive {
-				t.Errorf("lifecycle = %q, want %q", got.Lifecycle, kubehealth.LifecycleActive)
+			if got.Lifecycle.Status != tt.wantLifecycle {
+				t.Errorf("lifecycle = %q, want %q", got.Lifecycle, tt.wantLifecycle)
 			}
 		})
 	}
@@ -78,17 +79,21 @@ func TestPackageProfiles(t *testing.T) {
 		fixture            string
 		wantReconciliation kubehealth.ReconciliationStatus
 		wantAvailability   kubehealth.AvailabilityStatus
+		wantLifecycle      kubehealth.LifecycleStatus
 	}{
-		{"provider-healthy.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityAvailable},
-		{"provider-unhealthy.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityUnavailable},
-		{"provider-revision-awaiting-activation.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityAvailable},
-		{"provider-revision-inactive.yaml", kubehealth.ReconciliationSuspended, kubehealth.AvailabilityNotApplicable},
+		{"provider-healthy.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityAvailable, kubehealth.LifecycleActive},
+		{"provider-unhealthy.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityUnavailable, kubehealth.LifecycleActive},
+		{"provider-revision-awaiting-activation.yaml", kubehealth.ReconciliationReconciled, kubehealth.AvailabilityAvailable, kubehealth.LifecycleInitializing},
+		{"provider-revision-inactive.yaml", kubehealth.ReconciliationSuspended, kubehealth.AvailabilityNotApplicable, kubehealth.LifecycleActive},
 	}
 	for _, tt := range tests {
 		t.Run(tt.fixture, func(t *testing.T) {
 			got := assessFixture(t, assessor, tt.fixture)
 			if got.Reconciliation.Status != tt.wantReconciliation || got.Availability.Status != tt.wantAvailability {
 				t.Fatalf("assessment = %#v", got)
+			}
+			if got.Lifecycle.Status != tt.wantLifecycle {
+				t.Fatalf("lifecycle = %q, want %q", got.Lifecycle.Status, tt.wantLifecycle)
 			}
 		})
 	}

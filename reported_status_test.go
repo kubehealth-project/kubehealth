@@ -56,6 +56,17 @@ func TestReportedStatusAcceptsExplicitUnknown(t *testing.T) {
 	}
 }
 
+func TestReportedStatusAcceptsInitializingLifecycle(t *testing.T) {
+	obj := widget(1, reportedStatus(1, "InProgress", "Unknown", "Initializing"))
+	got, err := kubehealth.Assess(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Lifecycle.Status != kubehealth.LifecycleInitializing {
+		t.Fatalf("lifecycle = %q, want %q", got.Lifecycle.Status, kubehealth.LifecycleInitializing)
+	}
+}
+
 func TestPartialReportedStatusFallsBackToRegisteredCheck(t *testing.T) {
 	assessor := kubehealth.NewAssessor()
 	checkCalls := 0

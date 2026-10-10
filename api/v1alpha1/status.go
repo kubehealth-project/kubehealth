@@ -154,7 +154,7 @@ func (s Status) Validate() error {
 	}
 
 	switch s.Lifecycle.Status {
-	case api.LifecycleActive, api.LifecycleTerminating:
+	case api.LifecycleInitializing, api.LifecycleActive, api.LifecycleTerminating:
 	default:
 		return fmt.Errorf("invalid lifecycle status %q", s.Lifecycle.Status)
 	}

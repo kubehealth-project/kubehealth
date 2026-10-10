@@ -134,7 +134,7 @@ Reconciliation uses `Reconciled`, `InProgress`, `Failed`, `Suspended`, `Unknown`
 Availability uses `Available`, `PartiallyAvailable`, `Unavailable`, `Unknown`,
 or `NotApplicable`.
 
-Lifecycle uses `Active`, `Terminating`, `NotFound`, or `Unknown`.
+Lifecycle uses `Initializing`, `Active`, `Terminating`, `NotFound`, or `Unknown`.
 
 A failed Deployment rollout with healthy old replicas can return:
 
@@ -214,6 +214,108 @@ status:
       message: The resource is active
       lastTransitionTime: "2026-09-13T10:00:00Z"
 ```
+
+The contract is defined in
+`github.com/kubehealth-project/kubehealth/api/v1alpha1`. An operator can embed
+it in its status type:
+
+```go
+import (
+	healthv1alpha1 "github.com/kubehealth-project/kubehealth/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+type WidgetStatus struct {
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	KubeHealth *healthv1alpha1.Status `json:"kubeHealth,omitempty"`
+}
+```
+
+Enable the CRD `/status` subresource and let the controller, rather than users,
+own this field. Do not add CRD defaults below `status.kubeHealth`: absence must
+mean that the operator has not reported an authoritative assessment.
+
+The package provides update helpers that maintain each dimension's
+`lastTransitionTime` when its `status` value changes. Changing only a reason or
+message does not reset the transition time:
+
+```go
+health := widget.Status.KubeHealth
+if health == nil {
+	health = healthv1alpha1.NewStatus(widget.Generation)
+}
+health.ContractVersion = healthv1alpha1.ContractVersion
+health.ObservedGeneration = widget.Generation
+health.SetReconciliation(
+	kubehealth.ReconciliationFailed,
+	"ProgressDeadlineExceeded",
+	"The desired revision did not become ready before its deadline",
+)
+health.SetAvailability(
+	kubehealth.AvailabilityAvailable,
+	"PreviousRevisionServing",
+	"The previous revision continues to serve traffic",
+)
+health.SetLifecycle(
+	kubehealth.LifecycleActive,
+	"DeletionNotRequested",
+	"The resource is active",
+)
+widget.Status.KubeHealth = health
+```
+
+Reuse the previous report as shown above. Creating a new report during every
+reconciliation would reset all transition times even when the status values did
+not change.
+
+### Embedded report contract
+
+| Field | Required for the fast path | Meaning |
+| --- | --- | --- |
+| `contractVersion` | Yes | Embedded KubeHealth contract version. The supported value is `v1alpha1`. |
+| `observedGeneration` | Yes | The resource generation used to produce the report. |
+| `reconciliation.status` | Yes | A valid KubeHealth reconciliation value. |
+| `availability.status` | Yes | A valid KubeHealth availability value. |
+| `lifecycle.status` | Yes | `Initializing`, `Active`, or `Terminating`. |
+| Each dimension's `reason` | No | Optional CamelCase programmatic explanation. |
+| Each dimension's `message` | No | Optional human-readable explanation. |
+| Each dimension's `lastTransitionTime` | No | Time when that dimension's status last changed. |
+
+`Unknown` and `NotApplicable` are explicit values, so they count as present.
+`NotApplicable` is valid only for reconciliation and availability. `NotFound`
+cannot be embedded in the status of an object that exists.
+
+KubeHealth accepts the report as authoritative only when
+`observedGeneration` equals `metadata.generation`. When the report is stale,
+KubeHealth reports reconciliation as `InProgress` and continues to run the
+registered check. A check can therefore provide current availability while the
+operator catches up. Without a registered check, KubeHealth retains the stale
+report's availability because it may still describe a serving previous
+revision.
+
+`metadata.deletionTimestamp` remains the authoritative lifecycle signal. A
+report for a deleting object is accepted only when it reports `Terminating`. An
+`Initializing` and `Active` reports become ineligible after deletion begins and KubeHealth uses the
+normal assessment pipeline. Reporting `Terminating` without a deletion
+timestamp is invalid.
+
+Partial reports are ignored as a unit and the normal pipeline runs. KubeHealth
+does not merge individual reported dimensions with inferred dimensions. A
+complete malformed report, an unsupported contract version, or an observed
+generation newer than `metadata.generation` returns an error rather than being
+silently trusted.
+
+Only one controller should own `status.kubeHealth`. The report is authoritative
+because the operator is trusted through `/status` RBAC, not because KubeHealth
+authenticates its contents.
+
+The dedicated report complements rather than replaces `status.conditions`.
+Standard Kubernetes conditions remain useful to humans and ecosystem tooling,
+but their `True`, `False`, and `Unknown` values cannot losslessly represent all
+KubeHealth states.
 
 ## Built-in checks
 

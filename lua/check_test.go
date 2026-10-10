@@ -64,6 +64,20 @@ func TestNewCheckAssessesObject(t *testing.T) {
 	}
 }
 
+func TestNewCheckAcceptsInitializingLifecycle(t *testing.T) {
+	check, err := kubehealthlua.NewCheck(`return { reconciliation = "InProgress", availability = "Unknown", lifecycle = "Initializing" }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assessment, err := check(widget(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if assessment.Lifecycle.Status != kubehealth.LifecycleInitializing {
+		t.Fatalf("lifecycle = %q, want %q", assessment.Lifecycle.Status, kubehealth.LifecycleInitializing)
+	}
+}
+
 func TestRegisterUsesNormalAssessorPrecedence(t *testing.T) {
 	assessor := kubehealth.NewAssessor()
 	gvk := schema.GroupVersionKind{Group: "example.io", Version: "v1", Kind: "Widget"}

@@ -1,23 +1,123 @@
 # KubeHealth
 
-KubeHealth is a Kubernetes resource health contract. It combines kstatus
-conventions with a registry of resource-specific health checks and separates
-reconciliation, availability, and lifecycle.
+KubeHealth is a prototype shared health contract for Kubernetes resources, with
+a Go library that implements the contract. It gives ecosystem tools a common way
+to describe whether a resource has converged, is working now, and is active or
+terminating - without requiring every tool to reimplement each resource's health
+logic.
+
+KubeHealth is a library and a status contract, not a running service, CLI, or
+probe. It assesses Kubernetes objects that a consumer has already retrieved; the
+consumer remains responsible for connecting to the cluster and reading those
+objects. Adoption is opt-in: tools interoperate through KubeHealth when they
+produce or consume its contract.
 
 A resource check is KubeHealth-compliant when it returns all three dimensions,
 uses the defined values, reports unknown information as `Unknown`, and does not
 conflate failed reconciliation with unavailable operation.
 
-```go
-assessment, err := kubehealth.Assess(obj)
+For a live end-to-end walkthrough, see the
+[`kind` Deployment demo](examples/kind-deployment/README.md).
+
+## Quick start
+
+Install the Go module:
+
+```sh
+go get github.com/kubehealth-project/kubehealth
 ```
 
-`Assess` is the primary API. Consumers that require the original single-value
-kstatus model can use:
+Pass a Kubernetes object to `Assess`. The core assessor includes checks for
+common built-in Kubernetes resources, such as Deployments:
 
 ```go
-kstatusResult, err := kstatusadapter.Assess(obj)
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+
+	"github.com/kubehealth-project/kubehealth"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
+func main() {
+	deployment := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "apps/v1",
+		"kind":       "Deployment",
+		"metadata": map[string]any{
+			"name":       "api",
+			"generation": int64(1),
+		},
+		"spec": map[string]any{"replicas": int64(2)},
+		"status": map[string]any{
+			"observedGeneration": int64(1),
+			"updatedReplicas":    int64(2),
+			"replicas":           int64(2),
+			"availableReplicas":  int64(2),
+		},
+	}}
+
+	assessment, err := kubehealth.Assess(deployment)
+	if err != nil {
+		log.Fatal(err)
+	}
+	output, err := json.MarshalIndent(assessment, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(output))
+}
 ```
+
+The example prints the normalized reconciliation, availability, and lifecycle
+dimensions. In a real tool, get the object from the Kubernetes API or another
+source before calling `Assess`. For this Deployment, the statuses are:
+
+```json
+{
+  "reconciliation": { "status": "Reconciled", "message": "Deployment is reconciled" },
+  "availability": { "status": "Available", "message": "2 replicas are available" },
+  "lifecycle": { "status": "Active" }
+}
+```
+
+For checks maintained in this repository for ecosystem APIs, create an assessor
+with the optional catalog. The catalog includes the built-in checks plus the
+registered integrations:
+
+```go
+func assessWithCatalog(obj *unstructured.Unstructured) (kubehealth.Assessment, error) {
+	assessor, err := catalog.NewAssessor()
+	if err != nil {
+		return kubehealth.Assessment{}, err
+	}
+	return assessor.Assess(obj)
+}
+```
+
+This example uses `catalog` and the same `kubehealth` and
+`unstructured.Unstructured` imports shown above. To keep dependencies smaller,
+import only the integration you need and register it with
+`kubehealth.NewAssessor()`. Operators can also publish an authoritative
+assessment in `status.kubeHealth`; see
+[Report health from an operator](#report-health-from-an-operator).
+
+The optional `github.com/kubehealth-project/kubehealth/kstatus` module projects
+an assessment into the upstream kstatus result shape when a consumer needs that
+single-value compatibility view. The three-dimensional KubeHealth assessment is
+the canonical result.
+
+## Core concepts
+
+- **Reconciliation** - has the resource converged to its desired state?
+- **Availability** - is the resource operational right now?
+- **Lifecycle** - is the resource initializing, active, or terminating?
+
+These dimensions stay independent. For example, a failed Deployment rollout can
+be `Failed + Available + Active` when its previous replicas are still serving.
+The model and status values are described in [Assessment](#assessment).
 
 ## Aggregate child health
 
@@ -373,28 +473,22 @@ Ecosystem checks live outside the core package, grouped by owning project:
 
 ```text
 integrations/
-    certmanager/
-      register.go
-      certificate.go
-      certificate_test.go
-      issuer.go
-      issuer_test.go
-    kyverno/
-      register.go
-      policy.go
-      policy_test.go
-      clusterpolicy_test.go
-    keda/
-      register.go
-      scaledobject.go
-      scaledobject_test.go
-    argorollouts/
-      register.go
-      rollout.go
-      rollout_test.go
-    crossplane/
-    externalsecrets/
-    gatewayapi/
+  certmanager/
+    register.go
+    certificate.go
+    certificate_test.go
+    issuer.go
+    issuer_test.go
+  kyverno/
+  keda/
+  argorollouts/
+  crossplane/
+  externalsecrets/
+  gatewayapi/
+  prometheusoperator/
+    register.go
+    workload.go
+    workload_test.go
 ```
 
 The demonstration catalog includes:
@@ -412,6 +506,7 @@ The demonstration catalog includes:
   `BackendTLSPolicy`
 - External Secrets Operator `ExternalSecret`, `ClusterExternalSecret`,
   `SecretStore`, `ClusterSecretStore`, and `PushSecret`
+- Prometheus Operator `Prometheus`, `Alertmanager`, and `ThanosRuler`
 
 The Rollout check reports reconciliation and replica availability independently.
 A failed or paused rollout can therefore remain `Available` when its stable
@@ -661,3 +756,23 @@ To call a check KubeHealth-compliant, it must:
 
 See [`CONTRIBUTING_CHECKS.md`](CONTRIBUTING_CHECKS.md) for the integration
 layout and contribution rules.
+
+## Run the tests
+
+From the repository root, run the main module's tests with:
+
+```sh
+go test ./...
+```
+
+The kstatus adapter is a separate Go module nested in `kstatus/`, so test it
+separately:
+
+```sh
+cd kstatus
+go test ./...
+```
+
+For a live end-to-end example that creates a local kind cluster, breaks a
+Deployment update, and assesses the Deployment with the library, see
+[`examples/kind-deployment`](examples/kind-deployment/README.md).

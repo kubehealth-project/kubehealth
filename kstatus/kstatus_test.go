@@ -14,13 +14,13 @@ func TestProject(t *testing.T) {
 		assessment kubehealth.Assessment
 		want       status.Status
 	}{
-		{name: "reconciled", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleActive, Reconciliation: kubehealth.ReconciliationReconciled}, want: status.CurrentStatus},
-		{name: "in progress", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleActive, Reconciliation: kubehealth.ReconciliationInProgress}, want: status.InProgressStatus},
-		{name: "failed", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleActive, Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: kubehealth.ReconciliationFailed}}, want: status.FailedStatus},
-		{name: "suspended", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleActive, Reconciliation: kubehealth.ReconciliationSuspended}, want: status.InProgressStatus},
-		{name: "initializing", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleInitializing}, want: status.InProgressStatus},
-		{name: "terminating", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleTerminating}, want: status.TerminatingStatus},
-		{name: "not found", assessment: kubehealth.Assessment{Lifecycle: kubehealth.LifecycleNotFound}, want: status.NotFoundStatus},
+		{name: "reconciled", assessment: assessment(kubehealth.ReconciliationReconciled, kubehealth.LifecycleActive), want: status.CurrentStatus},
+		{name: "in progress", assessment: assessment(kubehealth.ReconciliationInProgress, kubehealth.LifecycleActive), want: status.InProgressStatus},
+		{name: "failed", assessment: assessment(kubehealth.ReconciliationFailed, kubehealth.LifecycleActive), want: status.FailedStatus},
+		{name: "suspended", assessment: assessment(kubehealth.ReconciliationSuspended, kubehealth.LifecycleActive), want: status.InProgressStatus},
+		{name: "initializing", assessment: assessment("", kubehealth.LifecycleInitializing), want: status.InProgressStatus},
+		{name: "terminating", assessment: assessment("", kubehealth.LifecycleTerminating), want: status.TerminatingStatus},
+		{name: "not found", assessment: assessment("", kubehealth.LifecycleNotFound), want: status.NotFoundStatus},
 	}
 
 	for _, test := range tests {
@@ -29,5 +29,12 @@ func TestProject(t *testing.T) {
 				t.Fatalf("status = %q, want %q", got.Status, test.want)
 			}
 		})
+	}
+}
+
+func assessment(reconciliation kubehealth.ReconciliationStatus, lifecycle kubehealth.LifecycleStatus) kubehealth.Assessment {
+	return kubehealth.Assessment{
+		Reconciliation: kubehealth.Dimension[kubehealth.ReconciliationStatus]{Status: reconciliation},
+		Lifecycle:      kubehealth.Dimension[kubehealth.LifecycleStatus]{Status: lifecycle},
 	}
 }

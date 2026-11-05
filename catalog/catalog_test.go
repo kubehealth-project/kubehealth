@@ -36,6 +36,9 @@ func TestCatalogRegistersIntegrations(t *testing.T) {
 		resource("kyverno.io/v2beta1", "Policy"),
 		resource("kyverno.io/v2beta1", "ClusterPolicy"),
 		resource("keda.sh/v1alpha1", "ScaledObject"),
+		resource("monitoring.coreos.com/v1", "Prometheus"),
+		resource("monitoring.coreos.com/v1", "Alertmanager"),
+		resource("monitoring.coreos.com/v1", "ThanosRuler"),
 	}
 	for _, obj := range objects {
 		got, err := assessor.Assess(obj)

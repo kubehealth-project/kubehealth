@@ -10,6 +10,7 @@ import (
 	"github.com/kubehealth-project/kubehealth/integrations/gatewayapi"
 	"github.com/kubehealth-project/kubehealth/integrations/keda"
 	"github.com/kubehealth-project/kubehealth/integrations/kyverno"
+	"github.com/kubehealth-project/kubehealth/integrations/prometheusoperator"
 )
 
 // NewAssessor returns an assessor with native and catalog integrations.
@@ -23,6 +24,7 @@ func NewAssessor() (*kubehealth.Assessor, error) {
 		gatewayapi.Register,
 		kyverno.Register,
 		keda.Register,
+		prometheusoperator.Register,
 	} {
 		if err := register(assessor); err != nil {
 			return nil, err
